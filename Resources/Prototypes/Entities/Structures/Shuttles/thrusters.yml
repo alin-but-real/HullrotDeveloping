@@ -18,10 +18,10 @@
           - MachineLayer
     - type: AmbientSound
       enabled: false
-      range: 4
+      range: 30
       volume: -4
       sound:
-        path: /Audio/Effects/shuttle_thruster.ogg
+        path: /Audio/_Crescent/Thrusters/thruster_constant.ogg
     - type: Transform
       anchored: true
     - type: Physics

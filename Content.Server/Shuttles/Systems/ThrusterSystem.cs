@@ -21,23 +21,29 @@ using Robust.Shared.Timing;
 using Robust.Shared.Utility;
 using Content.Shared.Localizations;
 using Content.Shared.Power;
+using Content.Shared.Sound;
+using Robust.Shared.Audio.Systems;
+using Robust.Shared.Audio;
 
 namespace Content.Server.Shuttles.Systems;
 
 public sealed class ThrusterSystem : EntitySystem
 {
-    [Dependency] private readonly IGameTiming _timing = default!;
+    [Dependency] private readonly IGameTiming _timing = default!;   
     [Dependency] private readonly ITileDefinitionManager _tileDefManager = default!;
     [Dependency] private readonly AmbientSoundSystem _ambient = default!;
     [Dependency] private readonly FixtureSystem _fixtureSystem = default!;
     [Dependency] private readonly DamageableSystem _damageable = default!;
     [Dependency] private readonly SharedPointLightSystem _light = default!;
     [Dependency] private readonly SharedAppearanceSystem _appearance = default!;
+    [Dependency] private readonly SharedAudioSystem _audio = default!;
 
     // Essentially whenever thruster enables we update the shuttle's available impulses which are used for movement.
     // This is done for each direction available.
 
     public const string BurnFixture = "thruster-burn";
+    public SoundSpecifier EngineOnSound = new SoundPathSpecifier("/Audio/_Crescent/Thrusters/thruster_on.ogg");
+    public SoundSpecifier EngineOffSound = new SoundPathSpecifier("/Audio/_Crescent/Thrusters/thruster_off.ogg");
 
     public override void Initialize()
     {
@@ -58,6 +64,20 @@ public sealed class ThrusterSystem : EntitySystem
         SubscribeLocalEvent<ThrusterComponent, UpgradeExamineEvent>(OnUpgradeExamine);
 
         SubscribeLocalEvent<ShuttleComponent, TileChangedEvent>(OnShuttleTileChange);
+    }
+
+    private void ChangeThrusterAmbient(EntityUid uid, bool state)
+    {
+        if (state) //Thruster is FIRING
+        {
+            //_audio.PlayPredicted(EngineOnSound, uid, uid, Robust.Shared.Audio.AudioParams.Default.WithMaxDistance(30));
+            _ambient.SetAmbience(uid, true);
+        }
+        else //Thruster is STOPPING FIRING
+        {
+            //_audio.PlayPredicted(EngineOffSound, uid, uid, Robust.Shared.Audio.AudioParams.Default.WithMaxDistance(30));
+            _ambient.SetAmbience(uid, false);
+        }
     }
 
     private void OnThrusterExamine(EntityUid uid, ThrusterComponent component, ExaminedEvent args)
@@ -269,6 +289,7 @@ public sealed class ThrusterSystem : EntitySystem
     /// </summary>
     public void EnableThruster(EntityUid uid, ThrusterComponent component, TransformComponent? xform = null)
     {
+
         if (component.IsOn ||
             !Resolve(uid, ref xform))
         {
@@ -320,7 +341,7 @@ public sealed class ThrusterSystem : EntitySystem
             _light.SetEnabled(uid, true, pointLightComponent);
         }
 
-        _ambient.SetAmbience(uid, true);
+
         RefreshCenter(uid, shuttleComponent);
     }
 
@@ -408,7 +429,7 @@ public sealed class ThrusterSystem : EntitySystem
             _light.SetEnabled(uid, false, pointLightComponent);
         }
 
-        _ambient.SetAmbience(uid, false);
+
 
         if (EntityManager.TryGetComponent(uid, out PhysicsComponent? physicsComponent))
         {
@@ -512,6 +533,7 @@ public sealed class ThrusterSystem : EntitySystem
             comp.Firing = true;
             appearanceQuery.TryGetComponent(uid, out var appearance);
             _appearance.SetData(uid, ThrusterVisualState.Thrusting, true, appearance);
+            ChangeThrusterAmbient(uid, true);
         }
     }
 
@@ -537,6 +559,7 @@ public sealed class ThrusterSystem : EntitySystem
             appearanceQuery.TryGetComponent(uid, out var appearance);
             comp.Firing = false;
             _appearance.SetData(uid, ThrusterVisualState.Thrusting, false, appearance);
+            ChangeThrusterAmbient(uid, false);
         }
     }
 
@@ -565,6 +588,7 @@ public sealed class ThrusterSystem : EntitySystem
                 appearanceQuery.TryGetComponent(uid, out var appearance);
                 comp.Firing = true;
                 _appearance.SetData(uid, ThrusterVisualState.Thrusting, true, appearance);
+                ChangeThrusterAmbient(uid, true);
             }
         }
         else
@@ -577,6 +601,7 @@ public sealed class ThrusterSystem : EntitySystem
                 appearanceQuery.TryGetComponent(uid, out var appearance);
                 comp.Firing = false;
                 _appearance.SetData(uid, ThrusterVisualState.Thrusting, false, appearance);
+                ChangeThrusterAmbient(uid, false);
             }
         }
     }
