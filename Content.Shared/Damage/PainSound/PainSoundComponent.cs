@@ -34,7 +34,7 @@ public sealed partial class PainSoundComponent : Component
     ///     The time enforced between pain sounds to avoid spam.
     /// </summary>
     [DataField]
-    public TimeSpan Cooldown = TimeSpan.FromSeconds(5.0);
+    public TimeSpan Cooldown = TimeSpan.FromSeconds(1.0);
 
     public TimeSpan? NextAllowedTime = null;
 }
