@@ -2,6 +2,7 @@ using Content.Shared.Bed.Sleep;
 using Content.Shared.Damage;
 using Content.Shared.Damage.PainSound;
 using Content.Shared.FixedPoint;
+using Content.Shared.Humanoid;
 using Content.Shared.Mobs;
 using Content.Shared.Mobs.Systems;
 using Content.Shared.Stunnable;
@@ -14,11 +15,11 @@ using Robust.Shared.Timing;
 
 namespace Content.Server.Damage.PainSound;
 
-/// <inheritdoc cref="PainSoundSystemComponent"/>
+/// <inheritdoc cref="PainSoundComponent"/>
 public sealed class PainSoundSystem : EntitySystem
 {
     [Dependency] private readonly IGameTiming _timing = default!;
-    [Dependency] private readonly IPrototypeManager _prototype = default!;
+    [Dependency] private readonly IPrototypeManager _protMan = default!;
     [Dependency] private readonly IRobustRandom _random = default!;
     [Dependency] private readonly SharedAudioSystem _audio = default!;
 
@@ -31,8 +32,12 @@ public sealed class PainSoundSystem : EntitySystem
     {
         base.Initialize();
 
+        _painSoundMale = _protMan.Index<SoundCollectionPrototype>("PainSoundsMale");
+        _painSoundFemale = _protMan.Index<SoundCollectionPrototype>("PainSoundsFemale");
+        _painSoundOther = _protMan.Index<SoundCollectionPrototype>("PainSoundsOther");
+
         SubscribeLocalEvent<PainSoundComponent, DamageChangedEvent>(OnDamageChanged, after: new[] { typeof(MobThresholdSystem) });
-        
+
     }
 
     private void PlayPainSound(EntityUid uid, PainSoundComponent component)
@@ -48,8 +53,20 @@ public sealed class PainSoundSystem : EntitySystem
         // set cooldown & raise event
         component.NextAllowedTime = _timing.CurTime + component.Cooldown;
 
-        _audio.PlayPvs(sound, uid, _params);
+        HumanoidAppearanceComponent? genderchecker = CompOrNull<HumanoidAppearanceComponent>(uid);
 
+        if (genderchecker == null) //should never happen
+            return;
+
+        if (_painSoundMale == null || _painSoundFemale == null || _painSoundOther == null)
+            return;
+
+        if (genderchecker.Sex == Sex.Male)
+            _audio.PlayPvs(_random.Pick(_painSoundMale.PickFiles).ToString(), uid, _params);
+        else if (genderchecker.Sex == Sex.Female)
+            _audio.PlayPvs(_random.Pick(_painSoundFemale.PickFiles).ToString(), uid, _params);
+        else //(genderchecker.Sex == Sex.Intersex)
+            _audio.PlayPvs(_random.Pick(_painSoundOther.PickFiles).ToString(), uid, _params);
     }
 
     private void OnDamageChanged(EntityUid uid, PainSoundComponent component, DamageChangedEvent args)
@@ -60,7 +77,7 @@ public sealed class PainSoundSystem : EntitySystem
         if (component.ValidDamageGroups != null)
         {
             var totalApplicableDamage = FixedPoint2.Zero;
-            foreach (var (group, value) in args.DamageDelta.GetDamagePerGroup(_prototype))
+            foreach (var (group, value) in args.DamageDelta.GetDamagePerGroup(_protMan))
             {
                 if (!component.ValidDamageGroups.Contains(group))
                     continue;
