@@ -79,12 +79,15 @@ public sealed class HitscanBasicVisualsSystem : EntitySystem
             sprites.Add((netCoords, shotAngle.FlipPositive(), hitscan.ImpactFlash, 1f));
         }
 
-        // if (sprites.Count > 0)
-        // {
-        //     RaiseNetworkEvent(new SharedGunSystem.HitscanEvent
-        //     {
-        //         Sprites = sprites,
-        //     }, Filter.Pvs(fromCoordinates, entityMan: EntityManager));
-        // }
+        //hullrot edit: we use a different fucking engine version than mono so you can't call this from shared with a filter
+        if (sprites.Count > 0)
+        {
+            RaiseNetworkEvent(new SharedGunSystem.HitscanEvent
+            {
+                Sprites = sprites,
+            }
+            // , Filter.Pvs(fromCoordinates, entityMan: EntityManager) //eternal pain and suffering .2 | 2025
+            );
+        }
     }
 }

@@ -70,65 +70,65 @@ public sealed partial class GunSystem : SharedGunSystem
     //hullrot: of course this is called somewhere else in a way that my IDE didn't fucking recognise
     // dont be headmaint
 
-    private void FireEffects(EntityCoordinates fromCoordinates, float distance, Angle mapDirection, HitscanBasicVisualsComponent hitscan, EntityUid? hitEntity = null)
-    {
-        // Lord
-        // Forgive me for the shitcode I am about to do
-        // Effects tempt me not
-        var sprites = new List<(NetCoordinates coordinates, Angle angle, SpriteSpecifier sprite, float scale)>();
-        var gridUid = fromCoordinates.GetGridUid(EntityManager);
-        var angle = mapDirection;
+    // private void FireEffects(EntityCoordinates fromCoordinates, float distance, Angle mapDirection, HitscanBasicVisualsComponent hitscan, EntityUid? hitEntity = null)
+    // {
+    //     // Lord
+    //     // Forgive me for the shitcode I am about to do
+    //     // Effects tempt me not
+    //     var sprites = new List<(NetCoordinates coordinates, Angle angle, SpriteSpecifier sprite, float scale)>();
+    //     var gridUid = fromCoordinates.GetGridUid(EntityManager);
+    //     var angle = mapDirection;
 
-        // We'll get the effects relative to the grid / map of the firer
-        // Look you could probably optimise this a bit with redundant transforms at this point.
-        var xformQuery = GetEntityQuery<TransformComponent>();
+    //     // We'll get the effects relative to the grid / map of the firer
+    //     // Look you could probably optimise this a bit with redundant transforms at this point.
+    //     var xformQuery = GetEntityQuery<TransformComponent>();
 
-        if (xformQuery.TryGetComponent(gridUid, out var gridXform))
-        {
-            var (_, gridRot, gridInvMatrix) = TransformSystem.GetWorldPositionRotationInvMatrix(gridXform, xformQuery);
+    //     if (xformQuery.TryGetComponent(gridUid, out var gridXform))
+    //     {
+    //         var (_, gridRot, gridInvMatrix) = TransformSystem.GetWorldPositionRotationInvMatrix(gridXform, xformQuery);
 
-            fromCoordinates = new EntityCoordinates(gridUid.Value,
-                Vector2.Transform(fromCoordinates.ToMapPos(EntityManager, TransformSystem), gridInvMatrix));
+    //         fromCoordinates = new EntityCoordinates(gridUid.Value,
+    //             Vector2.Transform(fromCoordinates.ToMapPos(EntityManager, TransformSystem), gridInvMatrix));
 
-            // Use the fallback angle I guess?
-            angle -= gridRot;
-        }
+    //         // Use the fallback angle I guess?
+    //         angle -= gridRot;
+    //     }
 
-        if (distance >= 1f)
-        {
-            if (hitscan.MuzzleFlash != null)
-            {
-                var coords = fromCoordinates.Offset(angle.ToVec().Normalized() / 2);
-                var netCoords = GetNetCoordinates(coords);
+    //     if (distance >= 1f)
+    //     {
+    //         if (hitscan.MuzzleFlash != null)
+    //         {
+    //             var coords = fromCoordinates.Offset(angle.ToVec().Normalized() / 2);
+    //             var netCoords = GetNetCoordinates(coords);
 
-                sprites.Add((netCoords, angle, hitscan.MuzzleFlash, 1f));
-            }
+    //             sprites.Add((netCoords, angle, hitscan.MuzzleFlash, 1f));
+    //         }
 
-            if (hitscan.TravelFlash != null)
-            {
-                var coords = fromCoordinates.Offset(angle.ToVec() * (distance + 0.5f) / 2);
-                var netCoords = GetNetCoordinates(coords);
+    //         if (hitscan.TravelFlash != null)
+    //         {
+    //             var coords = fromCoordinates.Offset(angle.ToVec() * (distance + 0.5f) / 2);
+    //             var netCoords = GetNetCoordinates(coords);
 
-                sprites.Add((netCoords, angle, hitscan.TravelFlash, distance - 1.5f));
-            }
-        }
+    //             sprites.Add((netCoords, angle, hitscan.TravelFlash, distance - 1.5f));
+    //         }
+    //     }
 
-        if (hitscan.ImpactFlash != null)
-        {
-            var coords = fromCoordinates.Offset(angle.ToVec() * distance);
-            var netCoords = GetNetCoordinates(coords);
+    //     if (hitscan.ImpactFlash != null)
+    //     {
+    //         var coords = fromCoordinates.Offset(angle.ToVec() * distance);
+    //         var netCoords = GetNetCoordinates(coords);
 
-            sprites.Add((netCoords, angle.FlipPositive(), hitscan.ImpactFlash, 1f));
-        }
+    //         sprites.Add((netCoords, angle.FlipPositive(), hitscan.ImpactFlash, 1f));
+    //     }
 
-        if (sprites.Count > 0)
-        {
-            RaiseNetworkEvent(new HitscanEvent
-            {
-                Sprites = sprites,
-            }, Filter.Pvs(fromCoordinates, entityMan: EntityManager));
-        }
-    }
+    //     if (sprites.Count > 0)
+    //     {
+    //         RaiseNetworkEvent(new HitscanEvent
+    //         {
+    //             Sprites = sprites,
+    //         }, Filter.Pvs(fromCoordinates, entityMan: EntityManager));
+    //     }
+    // }
 
     #endregion
 }
