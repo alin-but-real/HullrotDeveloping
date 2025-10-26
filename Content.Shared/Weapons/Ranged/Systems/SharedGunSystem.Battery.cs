@@ -37,7 +37,7 @@ public abstract partial class SharedGunSystem
         component.FireCost = state.FireCost;
 
         if (component is HitscanBatteryAmmoProviderComponent hitscan && state.Prototype != null) // Shitmed Change
-            hitscan.Prototype = state.Prototype;
+            hitscan.HitscanEntityProto = state.Prototype; // Mono - Changed to HitscanEntityProto
     }
 
     private void OnBatteryGetState(EntityUid uid, BatteryAmmoProviderComponent component, ref ComponentGetState args)
@@ -50,7 +50,7 @@ public abstract partial class SharedGunSystem
         };
 
         if (TryComp<HitscanBatteryAmmoProviderComponent>(uid, out var hitscan)) // Shitmed Change
-           state.Prototype = hitscan.Prototype;
+           state.Prototype = hitscan.HitscanEntityProto; // Mono - Changed to HitscanEntityProto
 
         args.State = state; // Shitmed Change
     }
@@ -108,7 +108,8 @@ public abstract partial class SharedGunSystem
                 var ent = Spawn(proj.Prototype, coordinates);
                 return (ent, EnsureShootable(ent));
             case HitscanBatteryAmmoProviderComponent hitscan:
-                return (null, ProtoManager.Index<HitscanPrototype>(hitscan.Prototype));
+                var hitscanEnt = Spawn(hitscan.HitscanEntityProto);
+                return (hitscanEnt, EnsureShootable(hitscanEnt));
             default:
                 throw new ArgumentOutOfRangeException();
         }
