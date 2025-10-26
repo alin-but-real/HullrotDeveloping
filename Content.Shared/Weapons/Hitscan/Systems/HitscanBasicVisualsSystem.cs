@@ -79,12 +79,12 @@ public sealed class HitscanBasicVisualsSystem : EntitySystem
             sprites.Add((netCoords, shotAngle.FlipPositive(), hitscan.ImpactFlash, 1f));
         }
 
-        if (sprites.Count > 0)
-        {
-            RaiseNetworkEvent(new SharedGunSystem.HitscanEvent
-            {
-                Sprites = sprites,
-            }, Filter.Pvs(fromCoordinates, entityMan: EntityManager));
-        }
+        // if (sprites.Count > 0)
+        // {
+        //     RaiseNetworkEvent(new SharedGunSystem.HitscanEvent
+        //     {
+        //         Sprites = sprites,
+        //     }, Filter.Pvs(fromCoordinates, entityMan: EntityManager));
+        // }
     }
 }
