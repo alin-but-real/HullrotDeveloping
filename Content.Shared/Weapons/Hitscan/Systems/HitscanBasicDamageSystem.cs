@@ -16,7 +16,7 @@ public sealed class HitscanBasicDamageSystem : EntitySystem
     {
         base.Initialize();
 
-        SubscribeLocalEvent<HitscanBasicDamageComponent, HitscanRaycastFiredEvent>(OnHitscanHit, after: [ typeof(HitscanReflectSystem) ]);
+        SubscribeLocalEvent<HitscanBasicDamageComponent, HitscanRaycastFiredEvent>(OnHitscanHit, after: [typeof(HitscanReflectSystem)]);
     }
 
     private void OnHitscanHit(Entity<HitscanBasicDamageComponent> ent, ref HitscanRaycastFiredEvent args)
