@@ -1091,3 +1091,72 @@
           params:
             pitch: 2
         ejectSound: /Audio/Weapons/Guns/MagOut/smg_magout.ogg
+
+#testing laser gun from mono
+
+- type: entity
+  parent: BaseFixedShipgun
+  id: ShuttleGunPlasmaRepeaterTesting
+  name: EXPORT SHI 400c plasma bolt repeater
+  suffix: ShipGun
+  description: A fixedpoint self-defense tool based on recovered NT technology, subpar in terms of power use to firepower ratio - mostly seen on civilian models.
+  components:
+  - type: ApcPowerReceiver
+    powerLoad: 2000
+  - type: StaticPrice
+    price: 3500
+  - type: Sprite
+    sprite: _Crescent/Objects/ShuttleWeapons/lasersmall.rsi
+    layers:
+    - state: lse-400c
+    - state: mag-unshaded-9
+  - type: Machine
+    board: ShuttleGunPlasmaRepeaterCircuitboard
+  - type: Destructible
+    thresholds:
+    - trigger:
+        !type:DamageTrigger
+        damage: 400
+      behaviors:
+        - !type:ChangeConstructionNodeBehavior
+          node: machineFrame
+  - type: ContainerContainer
+    containers:
+      machine_board: !type:Container
+      machine_parts: !type:Container
+  - type: Gun
+    fireOnDropChance: 0
+    projectileSpeed: 95
+    fireRate: 1.2
+    selectedMode: FullAuto
+    availableModes:
+      - FullAuto
+    angleDecay: 45
+    minAngle: 5
+    maxAngle: 15
+    soundGunshot:
+      path: /Audio/Weapons/Guns/Gunshots/ship_svalinn.ogg
+      params:
+        variation: 0.12
+  - type: ItemSlots
+    slots:
+      gun_magazine:
+        name: Magazine
+        insertSound: /Audio/Weapons/Guns/MagIn/batrifle_magin.ogg
+        ejectSound: /Audio/Weapons/Guns/MagOut/batrifle_magout.ogg
+        whitelist:
+          tags:
+            - PowerCell
+            - PowerCellSmall
+  - type: HitscanBatteryAmmoProvider
+    proto: RedLightLaser
+    fireCost: 50
+  - type: HardpointAnchorableOnly
+    class: Energy
+    size: Small
+  - type: Construction
+    graph: Machine
+    node: machine
+    containers:
+    - machine_parts
+    - machine_board
