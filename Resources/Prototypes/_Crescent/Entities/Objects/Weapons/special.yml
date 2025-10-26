@@ -95,21 +95,28 @@
     proto: MakoLaser
     fireCost: 10
 
-- type: hitscan
+- type: entity
+  parent: BasicHitscan
   id: MakoLaser
-  damage:
-    types:
-      Heat: 8
-      Structural: 180
-  muzzleFlash:
-    sprite: Objects/Weapons/Guns/Projectiles/projectiles.rsi
-    state: muzzle_omni
-  travelFlash:
-    sprite: Objects/Weapons/Guns/Projectiles/projectiles.rsi
-    state: beam_omni
-  impactFlash:
-    sprite: Objects/Weapons/Guns/Projectiles/projectiles.rsi
-    state: impact_omni
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: HitscanBasicRaycast
+    maxDistance: 60.0
+  - type: HitscanBasicDamage
+    damage:
+      types:
+        Structural: 180
+        Heat: 8
+  - type: HitscanBasicVisuals
+    muzzleFlash:
+      sprite: Objects/Weapons/Guns/Projectiles/projectiles.rsi
+      state: muzzle_omni
+    travelFlash:
+      sprite: Objects/Weapons/Guns/Projectiles/projectiles.rsi
+      state: beam_omni
+    impactFlash:
+      sprite: Objects/Weapons/Guns/Projectiles/projectiles.rsi
+      state: impact_omni
 
 - type: entity
   name: SCHK-2 plasma hardlight sword

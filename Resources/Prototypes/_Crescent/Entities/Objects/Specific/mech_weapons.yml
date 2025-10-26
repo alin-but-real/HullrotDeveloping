@@ -499,21 +499,28 @@
     tags:
     - ScoutMechEquipment
 
-- type: hitscan
+- type: entity
+  parent: BasicHitscan
   id: LumenLaser
-  damage:
-    types:
-      Heat: 7
-      Structural: 10
-  muzzleFlash:
-    sprite: Objects/Weapons/Guns/Projectiles/projectiles.rsi
-    state: muzzle_laser
-  travelFlash:
-    sprite: Objects/Weapons/Guns/Projectiles/projectiles.rsi
-    state: beam
-  impactFlash:
-    sprite: Objects/Weapons/Guns/Projectiles/projectiles.rsi
-    state: impact_laser
+  categories: [ HideSpawnMenu ]
+  components:
+  - type: HitscanBasicRaycast
+    maxDistance: 60.0
+  - type: HitscanBasicDamage
+    damage:
+      types:
+        Structural: 10
+        Heat: 7
+  - type: HitscanBasicVisuals
+    muzzleFlash:
+      sprite: Objects/Weapons/Guns/Projectiles/projectiles.rsi
+      state: muzzle_laser
+    travelFlash:
+      sprite: Objects/Weapons/Guns/Projectiles/projectiles.rsi
+      state: beam
+    impactFlash:
+      sprite: Objects/Weapons/Guns/Projectiles/projectiles.rsi
+      state: impact_laser
 
 - type: entity
   id: WeaponMechCombatPlasmaCannon
