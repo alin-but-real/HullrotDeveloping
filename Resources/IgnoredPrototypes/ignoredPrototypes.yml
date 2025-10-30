@@ -16,3 +16,21 @@
 - Prototypes/DeltaV/Roles/Jobs
 - Prototypes/Roles/Jobs/Security
 - Prototypes/Roles/Jobs/Science
+# hullrot ignored stuff begins
+# Wizden / base ss14
+# - /Prototypes/Entities/Clothing/OuterClothing/armor.yml
+# - /Prototypes/Entities/Clothing/OuterClothing/hardsuits.yml
+# - /Prototypes/Entities/Clothing/OuterClothing/softsuits.yml
+# - /Prototypes/Entities/Clothing/OuterClothing/wintercoats.yml
+# - /Prototypes/Entities/Clothing/OuterClothing/specific.yml
+# - /Prototypes/Entities/Clothing/OuterClothing/bio.yml
+# - /Prototypes/Entities/Clothing/OuterClothing/coats.yml
+# - /Prototypes/Entities/Clothing/OuterClothing/suits.yml
+# EE
+- /Prototypes/_EE/Entities/NanoTrasen/Modsuits #never used, we'll make our own modsuits
+# Goob
+- /Prototypes/_Goobstation/Entities/Clothing
+- /Prototypes/_Goobstation/Entities/Mobs
+- /Prototypes/_Goobstation/Entities/Structures
+- /Prototypes/_Goobstation/Entities/Weapons
+- /Prototypes/_Goobstation/Entities/Unique
