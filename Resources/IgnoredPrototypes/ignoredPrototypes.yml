@@ -17,7 +17,7 @@
 - Prototypes/Roles/Jobs/Security
 - Prototypes/Roles/Jobs/Science
 # hullrot ignored stuff begins
-# Wizden / base ss14
+# Wizden / base ss14 - these break everything when ignored so DON'T do that
 # - /Prototypes/Entities/Clothing/OuterClothing/armor.yml
 # - /Prototypes/Entities/Clothing/OuterClothing/hardsuits.yml
 # - /Prototypes/Entities/Clothing/OuterClothing/softsuits.yml
@@ -34,3 +34,5 @@
 - /Prototypes/_Goobstation/Entities/Structures
 - /Prototypes/_Goobstation/Entities/Weapons
 - /Prototypes/_Goobstation/Entities/Unique
+# Nyano
+# - /Prototypes/Nyanotrasen/Entities/Clothing
