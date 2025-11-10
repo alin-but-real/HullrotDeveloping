@@ -15,7 +15,6 @@
                 <Button Name="ShowVesselOnButton" Text="{Loc 'iff-console-on'}" StyleClasses="OpenRight" />
                 <Button Name="ShowVesselOffButton" Text="{Loc 'iff-console-off'}" StyleClasses="OpenLeft" />
             </BoxContainer>
-            <Label Name="ShowHeat"></Label>
         </GridContainer>
     </BoxContainer>
 </controls:FancyWindow>

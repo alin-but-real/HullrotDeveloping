@@ -8,8 +8,6 @@ public sealed class IFFConsoleBoundUserInterfaceState : BoundUserInterfaceState
 {
     public IFFFlags AllowedFlags;
     public IFFFlags Flags;
-    public float HeatCapacity;
-    public float CurrentHeat;
 }
 
 [Serializable, NetSerializable]

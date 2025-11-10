@@ -1,3 +1,12 @@
+// SPDX-FileCopyrightText: 2024 ErhardSteinhauer
+// SPDX-FileCopyrightText: 2024 Jake Huxell
+// SPDX-FileCopyrightText: 2024 eoineoineoin
+// SPDX-FileCopyrightText: 2024 exincore
+// SPDX-FileCopyrightText: 2024 metalgearsloth
+// SPDX-FileCopyrightText: 2025 Ilya246
+//
+// SPDX-License-Identifier: MPL-2.0
+
 using System.Numerics;
 using Content.Client.UserInterface.Controls;
 using Content.Shared.Shuttles.Components;
@@ -76,14 +85,6 @@ public partial class BaseShuttleControl : MapGridControl
             Color.FromSrgb(IFFComponent.SelfColor));
     }
 
-    protected void DrawNorthLine(DrawingHandleScreen handle, Angle angle)
-    {
-        var origin = ScalePosition(-new Vector2(Offset.X, -Offset.Y));
-        var aExtent = (angle - Math.Tau / 4).ToVec() * ScaledMinimapRadius * 1.42f;
-        var lineColor = Color.Red.WithAlpha(0.1f);
-        handle.DrawLine(origin, origin + aExtent, lineColor);
-    }
-
     protected void DrawCircles(DrawingHandleScreen handle)
     {
         // Equatorial lines
@@ -96,7 +97,7 @@ public partial class BaseShuttleControl : MapGridControl
         var maxDistance = MathF.Pow(2f, EquatorialMultiplier * 6f);
         var cornerDistance = MathF.Sqrt(WorldRange * WorldRange + WorldRange * WorldRange);
 
-        var origin = ScalePosition(-new Vector2(Offset.X, -Offset.Y));
+        var origin = MidPointVector; // Mono
 
         for (var radius = minDistance; radius <= maxDistance; radius *= EquatorialMultiplier)
         {
@@ -124,7 +125,17 @@ public partial class BaseShuttleControl : MapGridControl
         }
     }
 
-    protected void DrawGrid(DrawingHandleScreen handle, Matrix3x2 matrix, Entity<MapGridComponent> grid, Color color, float alpha = 0.01f)
+    // Frontier Corvax: north line drawing
+    protected void DrawNorthLine(DrawingHandleScreen handle, Angle angle)
+    {
+        var origin = MidPointVector;
+        var aExtent = (angle - Math.Tau / 4).ToVec() * ScaledMinimapRadius * 1.42f;
+        var lineColor = Color.Red.WithAlpha(0.1f);
+        handle.DrawLine(origin, origin + aExtent, lineColor);
+    }
+    // End Frontier Corvax
+
+    protected void DrawGrid(DrawingHandleScreen handle, Matrix3x2 gridToView, Entity<MapGridComponent> grid, Color color, float alpha = 0.01f)
     {
         var rator = Maps.GetAllTilesEnumerator(grid.Owner, grid.Comp);
         var minimapScale = MinimapScale;
@@ -272,7 +283,7 @@ public partial class BaseShuttleControl : MapGridControl
         Extensions.EnsureLength(ref _allVertices, totalData);
 
         _drawJob.MidPoint = midpoint;
-        _drawJob.Matrix = matrix;
+        _drawJob.Matrix = gridToView;
         _drawJob.MinimapScale = minimapScale;
         _drawJob.Vertices = gridData.Vertices;
         _drawJob.ScaledVertices = _allVertices;
@@ -294,7 +305,7 @@ public partial class BaseShuttleControl : MapGridControl
 
     private record struct GridDrawJob : IParallelRobustJob
     {
-        public int BatchSize => 16;
+        public int BatchSize => 64;
 
         public float MinimapScale;
         public Vector2 MidPoint;
@@ -305,12 +316,7 @@ public partial class BaseShuttleControl : MapGridControl
 
         public void Execute(int index)
         {
-            var vert = Vertices[index];
-            var adjustedVert = Vector2.Transform(vert, Matrix);
-            adjustedVert = adjustedVert with { Y = -adjustedVert.Y };
-
-            var scaledVert = ScalePosition(adjustedVert, MinimapScale, MidPoint);
-            ScaledVertices[index] = scaledVert;
+            ScaledVertices[index] = Vector2.Transform(Vertices[index], Matrix);
         }
     }
 }

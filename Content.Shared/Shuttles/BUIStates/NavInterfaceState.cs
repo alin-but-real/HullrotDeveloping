@@ -1,6 +1,16 @@
-using Content.Shared._NF.Shuttles.Events;
+// SPDX-FileCopyrightText: 2023 Kevin Zheng
+// SPDX-FileCopyrightText: 2024 Nemanja
+// SPDX-FileCopyrightText: 2024 Whatstone
+// SPDX-FileCopyrightText: 2024 metalgearsloth
+// SPDX-FileCopyrightText: 2024 neuPanda
+// SPDX-FileCopyrightText: 2025 Ark
+// SPDX-FileCopyrightText: 2025 Ilya246
+//
+// SPDX-License-Identifier: MPL-2.0
+
 using Robust.Shared.Map;
 using Robust.Shared.Serialization;
+using Content.Shared._NF.Shuttles.Events; // Frontier - InertiaDampeningMode access
 
 namespace Content.Shared.Shuttles.BUIStates;
 
@@ -17,40 +27,56 @@ public sealed class NavInterfaceState
     /// <summary>
     /// The relevant rotation to rotate the angle around.
     /// </summary>
-    public double Angle;
+    public Angle? Angle;
 
     public Dictionary<NetEntity, List<DockingPortState>> Docks;
 
+    public bool RotateWithEntity = true;
+
+    /// <summary>
+    /// Custom display names for network port buttons.
+    /// Key is the port ID, value is the display name.
+    /// </summary>
+    public Dictionary<string, string> NetworkPortNames = new();
+
+    // Frontier fields
     /// <summary>
     /// Frontier - the state of the shuttle's inertial dampeners
     /// </summary>
     public InertiaDampeningMode DampeningMode;
 
     /// <summary>
-    /// Hullrot - target console for this UI state
+    /// Frontier: settable maximum IFF range
     /// </summary>
-    public NetEntity console;
+    public float? MaxIffRange = null;
 
     /// <summary>
-    /// Hullrot - keep this aligned to world?
+    /// Frontier: settable coordinate visibility
     /// </summary>
-    public bool AlignToWorld = false;
+    public bool HideCoords = false;
+    // End Frontier fields
 
+    public bool Pannable = false; // Mono
+    public bool RelativePanning = false; // Mono
 
     public NavInterfaceState(
         float maxRange,
         NetCoordinates? coordinates,
-        double angle,
+        Angle? angle,
         Dictionary<NetEntity, List<DockingPortState>> docks,
         InertiaDampeningMode dampeningMode, // Frontier: add dampeningMode
-        NetEntity Console)
+        Dictionary<string, string>? networkPortNames = null,
+        bool pannable = false, // Mono
+        bool relativePan = false) // Mono
     {
         MaxRange = maxRange;
         Coordinates = coordinates;
         Angle = angle;
         Docks = docks;
         DampeningMode = dampeningMode; // Frontier
-        console = Console;
+        NetworkPortNames = networkPortNames ?? new Dictionary<string, string>();
+        Pannable = pannable; // Mono
+        RelativePanning = relativePan; // Mono
     }
 }
 
@@ -58,10 +84,4 @@ public sealed class NavInterfaceState
 public enum RadarConsoleUiKey : byte
 {
     Key
-}
- // hullrot added
-[Serializable, NetSerializable]
-public sealed class NavConsoleGroupPressedMessage(int payload) : BoundUserInterfaceMessage
-{
-    public int Payload = payload;
 }
