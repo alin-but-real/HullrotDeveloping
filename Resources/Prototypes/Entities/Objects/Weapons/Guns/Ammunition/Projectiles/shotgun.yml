@@ -197,7 +197,6 @@
     damage:
       types:
         Piercing: 23 # 23 x 8 = 182
-    harmorPenetration: 12
 
 - type: entity
   id: PelletShotgunUraniumSpread

@@ -44,8 +44,6 @@
     damage:
       types:
         Piercing: 70
-    harmorPenetration: 65
-    stoppingPower: 10
 #---------- Uranium ammo of Railgun 15mm ----------
 - type: entity
   id: CartridgeRailgun15mmDU
@@ -70,8 +68,6 @@
       types:
         Piercing: 70
         Radiation: 15
-    harmorPenetration: 80
-    stoppingPower: 10
 
 #---------- 15mm Railgun (empty) ----------
 - type: entity

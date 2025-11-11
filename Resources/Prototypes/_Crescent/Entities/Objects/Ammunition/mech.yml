@@ -47,8 +47,6 @@
       types:
         Piercing: 40
         Structural: 80
-    harmorPenetration: 30
-    stoppingPower: 6
 
 - type: entity
   id: ExosuitAutoshotgunPelletSpread
@@ -74,8 +72,6 @@
       types:
         Piercing: 45
         Structural: 100
-    harmorPenetration: 40
-    stoppingPower: 7
 
 - type: entity
   id: ExosuitAutopuntgunPelletSpread
@@ -103,8 +99,6 @@
         Heat: 40
         Radiation: 5
         Structural: 60
-    harmorPenetration: 60
-    stoppingPower: 6
   - type: ExplodeOnTrigger
   - type: Explosive
     explosionType: Default
@@ -137,8 +131,6 @@
         Heat: 70
         Radiation: 30
         Structural: 300
-    harmorPenetration: 80
-    stoppingPower: 8
   - type: ExplodeOnTrigger
   - type: Explosive
     explosionType: Default

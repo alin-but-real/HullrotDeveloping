@@ -40,8 +40,6 @@
     damage:
       types:
         Piercing: 15
-    harmorPenetration: 10
-    stoppingPower: 2
   - type: ProjectileIFF
     visualType: Circle
     color: White

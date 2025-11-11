@@ -8,8 +8,6 @@
     damage:
       types:
         Piercing: 21
-    harmorPenetration: 5
-    stoppingPower : 1
 
 - type: entity
   id: BulletPistolPractice
@@ -55,8 +53,6 @@
     damage:
       types:
         Piercing: 17
-    harmorPenetration: 15
-    stoppingPower : 1
 
 - type: entity
   id: BulletPistolShrapnel

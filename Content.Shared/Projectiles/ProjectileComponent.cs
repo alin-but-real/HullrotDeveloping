@@ -104,13 +104,22 @@ public sealed partial class ProjectileComponent : Component
     // Goobstation end
 
     // Hullrot start
-    // how many points of armor can this ammunition ignore SPCR 2025
-    [DataField("harmorPenetration"), AutoNetworkedField]
-    public float HullrotArmorPenetration = 0;
+    
+    // old mlg armor system
+    // // how many points of armor can this ammunition ignore SPCR 2025
+    // [DataField("harmorPenetration"), AutoNetworkedField]
+    // public float HullrotArmorPenetration = 0;
 
-    // stamina damage that ignores any armor/buff/etc SPCR 2025
+    // // stamina damage that ignores any armor/buff/etc SPCR 2025
+    // [DataField, AutoNetworkedField]
+    // public float stoppingPower = 0;
+
+    // new and shiny .2 armor system
+    /// <summary>
+    /// Separate damage value that applies to armor plates. If -1 (or negative at all), it will deal its regular Damage to plates instead of this.
+    /// </summary>
     [DataField, AutoNetworkedField]
-    public float stoppingPower = 0;
+    public float PlateDamage = -1;
 
     [DataField("gibsOnHit"), AutoNetworkedField]
     public bool gibsOnHit = false;

@@ -58,7 +58,7 @@ public sealed class DegradeableArmorSystem : EntitySystem
     [Dependency] private readonly SharedContainerSystem _containers = default!;
     [Dependency] private readonly SharedToolSystem _toolSystem = default!;
 
-    private const string conversionPrototype = "PiercingInducedBlunt";
+    // private const string conversionPrototype = "PiercingInducedBlunt"; //commented out mlg armor system
     /// <inheritdoc/>
     public override void Initialize()
     {
@@ -71,6 +71,11 @@ public sealed class DegradeableArmorSystem : EntitySystem
         SubscribeLocalEvent<DegradeableArmorComponent, ExaminedEvent>(OnArmorExamine);
     }
 
+    /// <summary>
+    /// handles making sure you cant repair armor you're wearing & not repairing full-hp armors
+    /// </summary>
+    /// <param name="owner"></param>
+    /// <param name="args"></param>
     private void OnInteractUsing(Entity<DegradeableArmorComponent> owner, ref InteractUsingEvent args)
     {
         if (args.Handled)
@@ -91,6 +96,11 @@ public sealed class DegradeableArmorSystem : EntitySystem
 
     }
 
+    /// <summary>
+    /// handles actually changing the hp on armor repair
+    /// </summary>
+    /// <param name="owner"></param>
+    /// <param name="args"></param>
     private void OnRepair(Entity<DegradeableArmorComponent> owner, ref ArmorRepairDoAfterEvent args)
     {
         if(args.Cancelled)
@@ -126,75 +136,124 @@ public sealed class DegradeableArmorSystem : EntitySystem
     {
         var msg = new FormattedMessage();
 
-        msg.AddMarkup(Loc.GetString("armor-examine"));
+        //IF we have a plate inserted,
+        msg.AddMarkup(Loc.GetString("hullrot-has-plate"));
 
-        foreach (var flatArmor in component.initialModifiers.FlatReduction)
+        msg.AddMarkup(Loc.GetString("hullrot-armor-plate-hp-left",
+                ("armorHealth", component.armorHealth),
+                ("armorMaxHealth", component.armorMaxHealth)
+            ));
+
+        //ELSE, if we can insert a plate,
+        // msg.AddMarkup(Loc.GetString("hullrot-hasnt-insert-plate"));
+        // return;
+
+        //ELSE, if we can't 
+        //msg.AddMarkup(Loc.GetString("hullrot-cant-insert-plate"));
+        // return;
+
+        msg.AddMarkup(Loc.GetString("hullrot-armor-examine"));
+
+        foreach (var resistedArmor in component.resistedTypes)
         {
             msg.PushNewline();
 
-            var armorType = Loc.GetString("armor-damage-type-" + flatArmor.Key.ToLower());
-            msg.AddMarkup(Loc.GetString("armor-reduction-value",
-                ("type", armorType),
-                ("value", (int)(flatArmor.Value * (component.armorHealth+000.1f)/component.armorMaxHealth))
+            var armorType = Loc.GetString(resistedArmor.ToLower());
+            msg.AddMarkup(Loc.GetString("hullrot-armor-resists-this-type",
+                ("damageType", armorType)
             ));
+
+            //("value", (int)(flatArmor.Value * (component.armorHealth+000.1f)/component.armorMaxHealth))
         }
 
         return msg;
     }
     private void OnInit(EntityUid uid, DegradeableArmorComponent component, ref MapInitEvent args)
     {
-        if(component.armorHealth == 0)
+        if (component.armorHealth == 0)
             component.armorHealth = component.armorMaxHealth;
     }
+
+
+    /// <summary>
+    /// this function handles the armor system changing damage taken. 
+    /// mlg coded this with a complicated tarkov-like damage reduction and penetration system | 2025
+    /// .2 re-coded this to be a buffer for damage on top, with replacable plates
+    /// </summary>
+    /// <param name="uid"></param>
+    /// <param name="component"></param>
+    /// <param name="args"></param>
     private void OnDamageModify(EntityUid uid, DegradeableArmorComponent component, InventoryRelayedEvent<DamageModifyEvent> args)
     {
-        if (component.armorHealth <= 0)
+        if (component.armorHealth <= 0) // if the plate's broken, don't do anything
             return;
-        var armorDamage = 0f;
+        // var armorDamage = 0f;
 
 
-        var damageDictionary = args.Args.Damage.DamageDict;
-        damageDictionary.TryAdd(conversionPrototype, 0);
+        var damageDictionary = args.Args.Damage.DamageDict; //damage dictionary is what damage we're about to take
+        // damageDictionary.TryAdd(conversionPrototype, 0); //no more piercing induced blunt
+
+
         foreach (var (type, value) in damageDictionary)
         {
-            if (!component.initialModifiers.FlatReduction.ContainsKey(type))
+            //  do we even reduce this type of damage?
+            if (!component.resistedTypes.Contains(type))
+                continue; //if not, then skip.
+            if (value < 0) //if we do but the damage taken is <0, skip.
                 continue;
-            if (value < 0)
-                continue;
-            var trueReduction = component.initialModifiers.FlatReduction[type];
-            if (trueReduction == 0)
-                continue;
-            switch (component.armorType)
-            {
-                // Ceramic armor has internal energy and it mitigates the impact of the bullet force-wise
-                case ArmorDegradation.Ceramic:
-                {
-                    trueReduction *= component.armorHealth / component.armorMaxHealth;
-                    trueReduction *= component.armorHealth / component.armorMaxHealth;
-                    _stamina.TakeStaminaDamage(component.wearer, args.Args.stoppingPower);
-                    break;
-                }
-                // Spreads damage internally
-                case ArmorDegradation.Metallic:
-                {
-                    trueReduction *= component.armorHealth / component.armorMaxHealth;
-                    damageDictionary[conversionPrototype] += args.Args.stoppingPower;
-                    break;
-                }
-                case ArmorDegradation.Plastic:
-                {
-                    trueReduction *= (component.armorHealth + (float) value * 2) / component.armorMaxHealth;
-                    _stamina.TakeStaminaDamage(component.wearer, args.Args.stoppingPower);
-                    break;
-                }
-            }
 
-            trueReduction = Math.Clamp(trueReduction - args.Args.HullrotArmorPen, 0f, (float) value);
-            armorDamage += (float) value * component.armorDamageCoefficients[type];
-            //Logger.Error($"Damage adjusted for type {type}, old {value}, new {Math.Max(0f, (float) value - trueReduction)}  Armor damage {armorDamage}. Armor Health {component.armorHealth}. Stamina damage {trueReduction * component.staminaConversions[type]}");
-            damageDictionary[type] = Math.Max(0f, (float) value - trueReduction);
+            // 0. armor system begins here. 
+            // each run of the foreach is for one damage type.
+            // we know the armor is NOT broken
+            // therefore...
+
+            // 1. reduce the damage taken to 0 for this hit
+            damageDictionary[type] = 0; //WARNING! THIS MIGHT HAVE MODIFIED VALUE! CHECK WITH TESTING!
+
+            // 2. damage the armor by that amount.
+            component.armorHealth = Math.Max(0, component.armorHealth - (float) value);
+
+            // 3. if the armor is NOT fully broken, play the regular damage sound.
+
+            // 4. if the armor is fully broken, play the plate-break sound and make some visual effects.
+
+            // and we're done!
+
+            // commented out MLG armor system | .2 | 2025
+
+            // switch (component.armorType)
+            // {
+            //     // Ceramic armor has internal energy and it mitigates the impact of the bullet force-wise
+            //     case ArmorDegradation.Ceramic:
+            //     {
+            //         trueReduction *= component.armorHealth / component.armorMaxHealth;
+            //         trueReduction *= component.armorHealth / component.armorMaxHealth;
+            //         _stamina.TakeStaminaDamage(component.wearer, args.Args.stoppingPower);
+            //         break;
+            //     }
+            //     // Spreads damage internally
+            //     case ArmorDegradation.Metallic:
+            //     {
+            //         trueReduction *= component.armorHealth / component.armorMaxHealth;
+            //         damageDictionary[conversionPrototype] += args.Args.stoppingPower;
+            //         break;
+            //     }
+            //     case ArmorDegradation.Plastic:
+            //     {
+            //         trueReduction *= (component.armorHealth + (float) value * 2) / component.armorMaxHealth;
+            //         _stamina.TakeStaminaDamage(component.wearer, args.Args.stoppingPower);
+            //         break;
+            //     }
+            // }
+
+            // trueReduction = Math.Clamp(trueReduction - args.Args.HullrotArmorPen, 0f, (float) value);
+            // armorDamage += (float) value * component.armorDamageCoefficients[type];
+            // //Logger.Error($"Damage adjusted for type {type}, old {value}, new {Math.Max(0f, (float) value - trueReduction)}  Armor damage {armorDamage}. Armor Health {component.armorHealth}. Stamina damage {trueReduction * component.staminaConversions[type]}");
+            // damageDictionary[type] = Math.Max(0f, (float) value - trueReduction);
+
+            // MLG armor system end
         }
-        component.armorHealth = Math.Max(0, component.armorHealth - armorDamage);
+        // component.armorHealth = Math.Max(0, component.armorHealth - armorDamage); //damage hurts the armor per type
         Dirty(uid, component);
     }
 

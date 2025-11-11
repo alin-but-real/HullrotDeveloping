@@ -19,25 +19,46 @@ public sealed partial class DegradeableArmorComponent : Component
     public float armorHealth;
 
     [DataField, ViewVariables(VVAccess.ReadWrite), AutoNetworkedField]
-    public Dictionary<string, float> armorDamageCoefficients = new Dictionary<string, float>()
+    public List<string> resistedTypes = new List<string> //only blunt,slash,piercing for armor plates by default
     {
-        {"Blunt", 1.4f},
-        {"Slash", 1.7f},
-        {"Piercing", 1f},
-        {"Heat", 1f},
-        {"Caustic", 10f},
-        {"Radiation", 0.1f}
+        {"Blunt"},
+        {"Slash"},
+        {"Piercing"},
     };
 
-    [DataField, ViewVariables(VVAccess.ReadWrite), AutoNetworkedField]
-    public ArmorDegradation armorType = ArmorDegradation.Plastic;
+    // total damage types:
+    /*
+    
+    {"Blunt"},
+    {"Slash"},
+    {"Piercing"},
+    {"Heat"},
+    {"Caustic"},
+    {"Radiation"}
 
-    [DataField, ViewVariables(VVAccess.ReadWrite), AutoNetworkedField]
-    public ArmorRepairMaterial armorRepair = ArmorRepairMaterial.PlasteelPlate;
+
+    */
+
+    // [DataField, ViewVariables(VVAccess.ReadWrite), AutoNetworkedField]
+    // public Dictionary<string, float> armorDamageCoefficients = new Dictionary<string, float>()
+    // {
+    //     {"Blunt", 1.4f},
+    //     {"Slash", 1.7f},
+    //     {"Piercing", 1f},
+    //     {"Heat", 1f},
+    //     {"Caustic", 10f},
+    //     {"Radiation", 0.1f}
+    // };
+
+    // [DataField, ViewVariables(VVAccess.ReadWrite), AutoNetworkedField]
+    // public ArmorDegradation armorType = ArmorDegradation.Plastic;
+
+    // [DataField, ViewVariables(VVAccess.ReadWrite), AutoNetworkedField]
+    // public ArmorRepairMaterial armorRepair = ArmorRepairMaterial.PlasteelPlate;
 
 
-    [DataField, ViewVariables(VVAccess.ReadWrite)]
-    public DamageModifierSet initialModifiers = default!;
+    // [DataField, ViewVariables(VVAccess.ReadWrite)]
+    // public DamageModifierSet initialModifiers = default!;
 
     /// <summary>
     ///  This is shitty but there is no wizden implementation for getting the wearer of a piece of clothing
@@ -47,11 +68,12 @@ public sealed partial class DegradeableArmorComponent : Component
     public EntityUid wearer = EntityUid.Invalid;
 
 }
-[Serializable, NetSerializable]
-public enum ArmorDegradation
-{
-    Ceramic = 1, // blocks damage but decay is exponential to the damage.
-    Metallic = 1<<1, // Linear damaage , linear scaling of protection
-    Plastic = 1<<2, // Complicated
-}
+// old MLG armor system
+// [Serializable, NetSerializable]
+// public enum ArmorDegradation
+// {
+//     Ceramic = 1, // blocks damage but decay is exponential to the damage.
+//     Metallic = 1<<1, // Linear damaage , linear scaling of protection
+//     Plastic = 1<<2, // Complicated
+// }
 

@@ -38,8 +38,6 @@
       types:
         Piercing: 22
         Shock: 4
-    harmorPenetration: 29
-    stoppingPower: 5
 #---------- The uranium ammo of 6x24mm ----------
 - type: entity
   id: Cartridge6x24mmConcentrated
@@ -66,8 +64,6 @@
       types:
         Piercing: 18
         Shock: 8
-    harmorPenetration: 39
-    stoppingPower: 3
 #---------- Anti-mech/cyborg ammo ----------
 - type: entity
   id: Cartridge6x24mmIon
@@ -123,8 +119,6 @@
       types:
         Piercing: 10
         Heat: 15
-    harmorPenetration: 29
-    stoppingPower: 5
   - type: PointLight
     enabled: true
     color: "#ff4300"

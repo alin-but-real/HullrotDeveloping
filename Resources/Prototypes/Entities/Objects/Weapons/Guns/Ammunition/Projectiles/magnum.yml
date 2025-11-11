@@ -8,8 +8,6 @@
     damage:
       types:
         Piercing: 25
-    harmorPenetration : 10
-    stoppingPower: 2
 
 - type: entity
   id: BulletMagnumPractice
@@ -57,8 +55,6 @@
     damage:
       types:
         Piercing: 25
-    harmorPenetration: 20
-    stoppingPower: 2
 
 - type: entity
   id: BulletMagnumUranium
@@ -70,8 +66,6 @@
     damage:
       types:
         Piercing: 25
-    harmorPenetration: 25
-    stoppingPower: 1
 
 - type: entity
   id: BulletMagnumShrapnel

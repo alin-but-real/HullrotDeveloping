@@ -122,8 +122,6 @@
     damage:
       types:
         Piercing: 21
-    harmorPenetration: 5
-    stoppingPower: 3
 
 - type: entity
   id: Spread40mmCan
@@ -954,8 +952,6 @@
     damage:
       types:
         Piercing: 27
-    harmorPenetration: 8
-    stoppingPower: 5
 
 - type: entity
   id: Spread84mmRecoillessCan
