@@ -16,7 +16,7 @@ using Content.Shared.Storage.Components;
 using Content.Shared.Lock;
 using Content.Shared._NF.Whitelist.Components;
 using Content.Shared.Silicons.Borgs.Components;
-using Content.Shared._Mono.Company;
+// using Content.Shared._Mono.Company;
 using Content.Shared.Ghost;
 using Content.Shared.Silicons.StationAi;
 using Robust.Shared.Map;
@@ -129,24 +129,24 @@ public sealed class ShipAccessReaderSystem : EntitySystem
         // Find all accessible ID cards for the user
         var accessibleCards = FindAccessibleIdCards(user);
 
-        // Check for company-based access (USSP, Rogue, TSF) using ID card company
-        if (TryComp<CompanyComponent>(gridUid, out var shipCompany))
-        {
-            // Check if ship has one of the special company designations
-            if (shipCompany.CompanyName == "Rogue" || shipCompany.CompanyName == "TSF")
-            {
-                // Check each accessible ID card for matching company
-                foreach (var cardUid in accessibleCards)
-                {
-                    if (TryComp<IdCardComponent>(cardUid, out var idCard) &&
-                        idCard.CompanyName == shipCompany.CompanyName)
-                    {
-                        // Log.Debug("ShipAccess: User {0} has company access to {1} ship via ID card {2}", user, shipCompany.CompanyName, cardUid);
-                        return true; // ID card company matches ship company
-                    }
-                }
-            }
-        }
+        // // Check for company-based access (USSP, Rogue, TSF) using ID card company
+        // if (TryComp<CompanyComponent>(gridUid, out var shipCompany))
+        // {
+        //     // Check if ship has one of the special company designations
+        //     if (shipCompany.CompanyName == "Rogue" || shipCompany.CompanyName == "TSF")
+        //     {
+        //         // Check each accessible ID card for matching company
+        //         foreach (var cardUid in accessibleCards)
+        //         {
+        //             if (TryComp<IdCardComponent>(cardUid, out var idCard) &&
+        //                 idCard.CompanyName == shipCompany.CompanyName)
+        //             {
+        //                 // Log.Debug("ShipAccess: User {0} has company access to {1} ship via ID card {2}", user, shipCompany.CompanyName, cardUid);
+        //                 return true; // ID card company matches ship company
+        //             }
+        //         }
+        //     }
+        // }
         // Log.Debug("ShipAccess: User {0} has {1} accessible ID cards: {2}", user, accessibleCards.Count, string.Join(", ", accessibleCards));
 
         // Check if any of the user's ID cards have a deed for this specific ship
