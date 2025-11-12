@@ -1,8 +1,9 @@
 using Content.Server.Shuttles.Components;
-using Content.Shared.Construction.Components;
+using Content.Shared.CCVar;
 using Content.Shared.Shuttles.BUIStates;
 using Content.Shared.Shuttles.Components;
 using Content.Shared.Shuttles.Events;
+using Robust.Server.GameObjects;
 
 namespace Content.Server.Shuttles.Systems;
 
@@ -10,33 +11,65 @@ public sealed partial class ShuttleSystem
 {
     private void InitializeIFF()
     {
-        SubscribeLocalEvent<IFFConsoleComponent, AnchorAttemptEvent>(OnIFFTryAnchor);
         SubscribeLocalEvent<IFFConsoleComponent, AnchorStateChangedEvent>(OnIFFConsoleAnchor);
         SubscribeLocalEvent<IFFConsoleComponent, IFFShowIFFMessage>(OnIFFShow);
         SubscribeLocalEvent<IFFConsoleComponent, IFFShowVesselMessage>(OnIFFShowVessel);
-        SubscribeLocalEvent<IFFConsoleComponent, MapInitEvent>(OnInit);
+        SubscribeLocalEvent<IFFConsoleComponent, BoundUIOpenedEvent>(OnIFFConsoleOpen);
+        SubscribeLocalEvent<GridSplitEvent>(OnGridSplit);
     }
 
-    private void OnIFFTryAnchor(Entity<IFFConsoleComponent> obj, ref AnchorAttemptEvent args)
+    private void OnGridSplit(ref GridSplitEvent ev)
     {
-        var targetTransform = Transform(obj);
-        if (targetTransform.GridUid is null || obj.Comp.originalGrid is null )
+        var splitMass = _cfg.GetCVar(CCVars.HideSplitGridsUnder);
+
+        if (splitMass < 0)
             return;
-        if (targetTransform.GridUid == obj.Comp.originalGrid)
-            return;
-        args.Cancel();
+
+        foreach (var grid in ev.NewGrids)
+        {
+            if (!_physicsQuery.TryGetComponent(grid, out var physics) ||
+                physics.Mass > splitMass)
+            {
+                continue;
+            }
+
+            AddIFFFlag(grid, IFFFlags.HideLabel);
+        }
     }
 
-    private void OnInit(Entity<IFFConsoleComponent> obj, ref MapInitEvent args)
+    private void OnIFFConsoleOpen(EntityUid uid, IFFConsoleComponent component, ref BoundUIOpenedEvent args)
     {
-        var targetTransform = Transform(obj);
-        if (targetTransform.GridUid is not null)
-            obj.Comp.originalGrid = targetTransform.GridUid;
+        // Make sure UI state is up-to-date when opening the UI
+        if (!TryComp(uid, out TransformComponent? xform) || xform.GridUid == null)
+        {
+            _uiSystem.SetUiState(uid, IFFConsoleUiKey.Key, new IFFConsoleBoundUserInterfaceState()
+            {
+                AllowedFlags = component.AllowedFlags,
+                Flags = IFFFlags.None,
+            });
+            return;
+        }
+
+        if (!TryComp<IFFComponent>(xform.GridUid, out var iff))
+        {
+            _uiSystem.SetUiState(uid, IFFConsoleUiKey.Key, new IFFConsoleBoundUserInterfaceState()
+            {
+                AllowedFlags = component.AllowedFlags,
+                Flags = IFFFlags.None,
+            });
+            return;
+        }
+
+        _uiSystem.SetUiState(uid, IFFConsoleUiKey.Key, new IFFConsoleBoundUserInterfaceState()
+        {
+            AllowedFlags = component.AllowedFlags,
+            Flags = iff.Flags,
+        });
     }
 
     private void OnIFFShow(EntityUid uid, IFFConsoleComponent component, IFFShowIFFMessage args)
     {
-        if (!TryComp<TransformComponent>(uid, out var xform) || xform.GridUid == null ||
+        if (!TryComp(uid, out TransformComponent? xform) || xform.GridUid == null ||
             (component.AllowedFlags & IFFFlags.HideLabel) == 0x0)
         {
             return;
@@ -54,7 +87,7 @@ public sealed partial class ShuttleSystem
 
     private void OnIFFShowVessel(EntityUid uid, IFFConsoleComponent component, IFFShowVesselMessage args)
     {
-        if (!TryComp<TransformComponent>(uid, out var xform) || xform.GridUid == null ||
+        if (!TryComp(uid, out TransformComponent? xform) || xform.GridUid == null ||
             (component.AllowedFlags & IFFFlags.Hide) == 0x0)
         {
             return;
@@ -62,15 +95,11 @@ public sealed partial class ShuttleSystem
 
         if (!args.Show)
         {
-            if (component.HeatCapacity - component.CurrentHeat < component.HeatGeneration)
-                return;
             AddIFFFlag(xform.GridUid.Value, IFFFlags.Hide);
-            component.active = true;
         }
         else
         {
             RemoveIFFFlag(xform.GridUid.Value, IFFFlags.Hide);
-            component.active = false;
         }
     }
 
@@ -78,17 +107,14 @@ public sealed partial class ShuttleSystem
     {
         // If we anchor / re-anchor then make sure flags up to date.
         if (!args.Anchored ||
-            !TryComp<TransformComponent>(uid, out var xform) ||
+            !TryComp(uid, out TransformComponent? xform) ||
             !TryComp<IFFComponent>(xform.GridUid, out var iff))
         {
             _uiSystem.SetUiState(uid, IFFConsoleUiKey.Key, new IFFConsoleBoundUserInterfaceState()
             {
                 AllowedFlags = component.AllowedFlags,
                 Flags = IFFFlags.None,
-                HeatCapacity = component.HeatCapacity,
-                CurrentHeat = component.CurrentHeat,
             });
-            component.active = false;
         }
         else
         {
@@ -96,30 +122,25 @@ public sealed partial class ShuttleSystem
             {
                 AllowedFlags = component.AllowedFlags,
                 Flags = iff.Flags,
-                HeatCapacity = component.HeatCapacity,
-                CurrentHeat = component.CurrentHeat,
             });
         }
     }
 
-    public void UpdateIFFInterface(EntityUid console, IFFConsoleComponent comp)
+    protected override void UpdateIFFInterfaces(EntityUid gridUid, IFFComponent component)
     {
-        if (!TryComp<TransformComponent>(console, out var xform) || !TryComp<IFFComponent>(xform.GridUid, out var iff))
-            return;
+        base.UpdateIFFInterfaces(gridUid, component);
 
+        var query = AllEntityQuery<IFFConsoleComponent, TransformComponent>();
+        while (query.MoveNext(out var uid, out var comp, out var xform))
+        {
+            if (xform.GridUid != gridUid)
+                continue;
 
-        _uiSystem.SetUiState(
-            console,
-            IFFConsoleUiKey.Key,
-            new IFFConsoleBoundUserInterfaceState()
+            _uiSystem.SetUiState(uid, IFFConsoleUiKey.Key, new IFFConsoleBoundUserInterfaceState()
             {
                 AllowedFlags = comp.AllowedFlags,
-                Flags = iff.Flags,
-                HeatCapacity = comp.HeatCapacity,
-                CurrentHeat = comp.CurrentHeat,
+                Flags = component.Flags,
             });
-
+        }
     }
-
-
 }

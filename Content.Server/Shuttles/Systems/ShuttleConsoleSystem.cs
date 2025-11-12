@@ -1,21 +1,35 @@
-using System.Linq;
-using Content.Server._Crescent.DynamicAcces;
-using Content.Server.Access.Systems;
-using Content.Server.DeviceLinking.Systems;
-using Content.Server.PointCannons;
-using Content.Server.Power.Components;
+// SPDX-FileCopyrightText: 2022 Myctai
+// SPDX-FileCopyrightText: 2022 metalgearsloth
+// SPDX-FileCopyrightText: 2023 Artjom
+// SPDX-FileCopyrightText: 2023 Kevin Zheng
+// SPDX-FileCopyrightText: 2023 Morb
+// SPDX-FileCopyrightText: 2023 TemporalOroboros
+// SPDX-FileCopyrightText: 2024 Dvir
+// SPDX-FileCopyrightText: 2024 Ed
+// SPDX-FileCopyrightText: 2024 Leon Friedrich
+// SPDX-FileCopyrightText: 2024 Mervill
+// SPDX-FileCopyrightText: 2024 Nemanja
+// SPDX-FileCopyrightText: 2024 Pieter-Jan Briers
+// SPDX-FileCopyrightText: 2024 Tayrtahn
+// SPDX-FileCopyrightText: 2024 Whatstone
+// SPDX-FileCopyrightText: 2024 neuPanda
+// SPDX-FileCopyrightText: 2025 Ark
+// SPDX-FileCopyrightText: 2025 Ilya246
+// SPDX-FileCopyrightText: 2025 ark1368
+// SPDX-FileCopyrightText: 2025 gus
+// SPDX-FileCopyrightText: 2025 sleepyyapril
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
+using Content.Server._Mono.Ships.Systems;
+using Content.Server._Mono.Shuttles.Components;
 using Content.Server.Power.EntitySystems;
 using Content.Server.Shuttles.Components;
 using Content.Server.Shuttles.Events;
 using Content.Server.Station.Systems;
-using Content.Shared._Crescent;
-using Content.Shared._Crescent.Helpers;
-using Content.Shared._NF.Shuttles.Events;
-using Content.Shared.Access.Components; // Frontier
+using Content.Shared._NF.Shuttles.Events; // Frontier
 using Content.Shared.ActionBlocker;
 using Content.Shared.Alert;
-using Content.Shared.Crescent.Radar;
-using Content.Shared.Interaction;
 using Content.Shared.Popups;
 using Content.Shared.Shuttles.BUIStates;
 using Content.Shared.Shuttles.Components;
@@ -23,10 +37,7 @@ using Content.Shared.Shuttles.Events;
 using Content.Shared.Shuttles.Systems;
 using Content.Shared.Tag;
 using Content.Shared.Movement.Systems;
-using Content.Shared.NamedModules.Components;
-using Content.Shared.PointCannons;
 using Content.Shared.Power;
-using Content.Shared.Shipyard.Components;
 using Content.Shared.Shuttles.UI.MapObjects;
 using Content.Shared.Timing;
 using Robust.Server.GameObjects;
@@ -35,18 +46,19 @@ using Robust.Shared.GameStates;
 using Robust.Shared.Map;
 using Robust.Shared.Utility;
 using Content.Shared.UserInterface;
-using Robust.Server.Audio;
-using Robust.Shared.Audio;
-using Robust.Shared.Containers;
-using Robust.Shared.Prototypes;
-using Robust.Shared.Random;
-
+using Content.Shared.Access.Systems; // Frontier
+using Content.Shared.Construction.Components; // Frontier
+using Content.Server.Radio.EntitySystems;
+using Content.Server.Station.Components;
+using Content.Shared._Mono.FireControl;
+using Content.Shared._Mono.Ships.Components;
+using Content.Shared.Verbs;
 
 namespace Content.Server.Shuttles.Systems;
 
 public sealed partial class ShuttleConsoleSystem : SharedShuttleConsoleSystem
 {
-    [Dependency] private readonly IMapManager _mapManager = default!;
+    [Dependency] private readonly SharedMapSystem _mapSystem = default!;
     [Dependency] private readonly ActionBlockerSystem _blocker = default!;
     [Dependency] private readonly AlertsSystem _alertsSystem = default!;
     [Dependency] private readonly EntityLookupSystem _lookup = default!;
@@ -57,15 +69,13 @@ public sealed partial class ShuttleConsoleSystem : SharedShuttleConsoleSystem
     [Dependency] private readonly TagSystem _tags = default!;
     [Dependency] private readonly UserInterfaceSystem _ui = default!;
     [Dependency] private readonly SharedContentEyeSystem _eyeSystem = default!;
-    [Dependency] private readonly DynamicCodeSystem _codes = default!;
-    [Dependency] private readonly CrescentHelperSystem _crescent = default!;
-    [Dependency] private readonly AccessSystem _acces = default!;
-    [Dependency] private readonly AudioSystem _audio = default!;
-    [Dependency] private readonly DeviceLinkSystem _link = default!;
-    [Dependency] private readonly MetaDataSystem _meta = default!;
-    [Dependency] private readonly IPrototypeManager _manager = default!;
-    [Dependency] private readonly IRobustRandom _random = default!;
-    [Dependency] private readonly _Lavaland.Shuttles.Systems.DockingConsoleSystem _dockingConsole = default!; // Lavaland Change: FTL
+    [Dependency] private readonly AccessReaderSystem _access = default!;
+    [Dependency] private readonly RadioSystem _radioSystem = default!;
+    [Dependency] private readonly StationJobsSystem _stationJobs = default!;
+    [Dependency] private readonly ILogManager _log = default!;
+    [Dependency] private readonly CrewedShuttleSystem _crewedShuttle = default!;
+
+    private ISawmill _sawmill = default!;
 
     private EntityQuery<MetaDataComponent> _metaQuery;
     private EntityQuery<TransformComponent> _xformQuery;
@@ -79,24 +89,21 @@ public sealed partial class ShuttleConsoleSystem : SharedShuttleConsoleSystem
         _metaQuery = GetEntityQuery<MetaDataComponent>();
         _xformQuery = GetEntityQuery<TransformComponent>();
 
+        _sawmill = _log.GetSawmill("shuttle-console");
+
+        InitializeDeviceLinking();
+
+        SubscribeLocalEvent<ShuttleConsoleComponent, ComponentStartup>(OnConsoleStartup);
         SubscribeLocalEvent<ShuttleConsoleComponent, ComponentShutdown>(OnConsoleShutdown);
         SubscribeLocalEvent<ShuttleConsoleComponent, PowerChangedEvent>(OnConsolePowerChange);
         SubscribeLocalEvent<ShuttleConsoleComponent, AnchorStateChangedEvent>(OnConsoleAnchorChange);
-        SubscribeLocalEvent<ShuttleConsoleComponent, ReAnchorEvent>(OnConsoleReAnchor);
         SubscribeLocalEvent<ShuttleConsoleComponent, ActivatableUIOpenAttemptEvent>(OnConsoleUIOpenAttempt);
-        SubscribeLocalEvent<ShuttleConsoleComponent, AfterInteractUsingEvent>(OnAfterInteractUsing);
-        SubscribeLocalEvent<ShuttleConsoleComponent, BoundUserInterfaceMessageAttempt>(BUIValidation);
-        SubscribeLocalEvent<ShuttleConsoleComponent, EntInsertedIntoContainerMessage>(UpdateUI);
-        SubscribeLocalEvent<ShuttleConsoleComponent, EntRemovedFromContainerMessage>(UpdateUI);
-        SubscribeLocalEvent<ShuttleConsoleComponent, AfterActivatableUIOpenEvent>(UpdateUI);
-        SubscribeLocalEvent<ShuttleConsoleComponent, TryMakeEmployeeMessage>(OnToggleEmployee);
         Subs.BuiEvents<ShuttleConsoleComponent>(ShuttleConsoleUiKey.Key, subs =>
         {
             subs.Event<ShuttleConsoleFTLBeaconMessage>(OnBeaconFTLMessage);
             subs.Event<ShuttleConsoleFTLPositionMessage>(OnPositionFTLMessage);
+            subs.Event<ToggleFTLLockRequestMessage>(OnToggleFTLLock);
             subs.Event<BoundUIClosedEvent>(OnConsoleUIClose);
-            subs.Event<BoundUIOpenedEvent>(OnConsoleUIOpened);
-            subs.Event<SwitchedToCrewHudMessage>(OnCrewSwitch);
         });
 
         SubscribeLocalEvent<DroneConsoleComponent, ConsoleShuttleEvent>(OnCargoGetConsole);
@@ -110,91 +117,14 @@ public sealed partial class ShuttleConsoleSystem : SharedShuttleConsoleSystem
         SubscribeLocalEvent<UndockEvent>(OnUndock);
 
         SubscribeLocalEvent<PilotComponent, ComponentGetState>(OnGetState);
+        SubscribeLocalEvent<PilotComponent, StopPilotingAlertEvent>(OnStopPilotingAlert);
 
         SubscribeLocalEvent<FTLDestinationComponent, ComponentStartup>(OnFtlDestStartup);
         SubscribeLocalEvent<FTLDestinationComponent, ComponentShutdown>(OnFtlDestShutdown);
 
-        SubscribeLocalEvent<ShuttleConsoleComponent, NavConsoleGroupPressedMessage>(OnGroupPressed);
-        SubscribeLocalEvent<NamedModulesComponent, ModuleNamingChangeEvent>(OnNameChange);
-
-        SubscribeLocalEvent<ShuttleConsoleComponent, ComponentInit>(OnComponentInit);
-        SubscribeLocalEvent<ShuttleConsoleComponent, ComponentRemove>(OnComponentRemove);
-
         InitializeFTL();
-    }
 
-    public void RefreshIFFState()
-    {
-        var query = AllEntityQuery<ShuttleConsoleComponent>();
-        while (query.MoveNext(out var uid, out var console))
-        {
-            if (console.LastUpdatedState == null || console.LastUpdatedState.IFFState == null)
-            {
-                continue;
-            }
-
-            console.LastUpdatedState.IFFState.Turrets = GetAllTurrets(uid);
-        }
-    }
-
-    private void BUIValidation(EntityUid uid, ShuttleConsoleComponent component, BoundUserInterfaceMessageAttempt args)
-    {
-        var uis = _ui.GetActorUis(args.Actor);
-
-        foreach (var (_, key) in uis)
-        {
-            if (key is TargetingConsoleUiKey.Key)
-            {
-                args.Cancel();
-            }
-        }
-    }
-
-    public void OnGroupPressed(EntityUid consoleUid, ShuttleConsoleComponent shuttleConsole, NavConsoleGroupPressedMessage args)
-    {
-        switch (args.Payload)
-        {
-            case 1: _link.InvokePort(consoleUid, "Group1"); break;
-            case 2: _link.InvokePort(consoleUid, "Group2"); break;
-            case 3: _link.InvokePort(consoleUid, "Group3"); break;
-            case 4: _link.InvokePort(consoleUid, "Group4"); break;
-            case 5: _link.InvokePort(consoleUid, "Group5"); break;
-            default:
-                break;
-        };
-    }
-
-    private void OnToggleEmployee(EntityUid uid, ShuttleConsoleComponent comp, TryMakeEmployeeMessage args)
-    {
-        if (comp.accesState != ShuttleConsoleAccesState.CaptainAcces)
-            return;
-        if (comp.targetIdSlot?.Item is null)
-            return;
-        var grid = _transform.GetGrid(uid);
-        if (grid is null)
-            return;
-        if (!TryComp<DynamicCodeHolderComponent>(grid, out var dynCodes))
-            return;
-        if (!dynCodes.mappedCodes.ContainsKey(args.chosenOption))
-            return;
-        var accesCodes = dynCodes.mappedCodes[args.chosenOption];
-        var dynIdComp = EnsureComp<DynamicCodeHolderComponent>(comp.targetIdSlot.Item.Value);
-        if (_codes.hasAllKeys(accesCodes, dynIdComp))
-        {
-            foreach(var key in accesCodes)
-                _codes.RemoveKeyFromComponent(dynIdComp, key, args.chosenOption);
-        }
-        else
-        {
-            foreach (var key in accesCodes)
-            {
-                _codes.AddKeyToComponent(dynIdComp, key, null);
-            }
-        }
-        //Logger.Error($"Trying to dirty {MetaData(comp.targetIdSlot.Item.Value).EntityName}");
-        Dirty(comp.targetIdSlot.Item.Value, dynIdComp);
-        //irtyEntity(comp.targetIdSlot.Item.Value);
-        UpdateState(uid, comp);
+        InitializeNFDrone(); // Frontier: add our drone subscriptions
     }
 
     private void OnFtlDestStartup(EntityUid uid, FTLDestinationComponent component, ComponentStartup args)
@@ -226,159 +156,36 @@ public sealed partial class ShuttleConsoleSystem : SharedShuttleConsoleSystem
         GetExclusions(ref exclusions);
         _consoles.Clear();
         _lookup.GetChildEntities(gridUid, _consoles);
+        DockingInterfaceState? dockState = null;
 
         foreach (var entity in _consoles)
         {
-            UpdateState(entity, entity.Comp);
+            UpdateState(entity, ref dockState);
         }
-
-        _dockingConsole.UpdateConsolesUsing(gridUid); // Lavaland Change: FTL
     }
-
-    private void OnAfterInteractUsing(
-        EntityUid uid,
-        ShuttleConsoleComponent component,
-        AfterInteractUsingEvent args
-    )
-    {
-        if (component.accesState == ShuttleConsoleAccesState.NotDynamic)
-            return;
-
-        if (!_crescent.getGridOfEntity(uid, out var gridId))
-            return;
-        if (!TryComp<DynamicCodeHolderComponent>(gridId, out var dynamicAccesComponent))
-            return;
-        if (!TryComp<IdCardComponent>(args.Used, out var _))
-            return;
-        var dynIdComp = EnsureComp<DynamicCodeHolderComponent>(args.Used);
-        if (component.captainIdentifier is null || component.pilotIdentifier is null)
-            return;
-
-        if (_codes.hasKey(dynamicAccesComponent.mappedCodes[component.captainIdentifier],dynIdComp))
-        {
-            if (component.accesState != ShuttleConsoleAccesState.NoAcces)
-            {
-                component.accesState = ShuttleConsoleAccesState.NoAcces;
-                _popup.PopupEntity("Console locked", uid, args.User, PopupType.Small);
-                _itemSlotsSystem.TryEject(uid, SharedShuttleConsoleComponent.IdSlotName, args.User, out _);
-                _itemSlotsSystem.SetLock(uid, SharedShuttleConsoleComponent.IdSlotName, true);
-                return;
-            }
-            component.accesState = ShuttleConsoleAccesState.CaptainAcces;
-            _audio.PlayPvs("/Audio/Machines/high_tech_confirm.ogg", uid, AudioParams.Default);
-            _popup.PopupEntity("Console unlocked. Welcome onboard, captain.", uid, args.User);
-            UpdateState(uid, component);
-            return;
-        }
-
-        if (_codes.hasKey(dynamicAccesComponent.mappedCodes[component.pilotIdentifier], dynIdComp))
-        {
-            if (component.accesState != ShuttleConsoleAccesState.NoAcces)
-            {
-                component.accesState = ShuttleConsoleAccesState.NoAcces;
-                _popup.PopupEntity("Console locked", uid, args.User, PopupType.Small);
-                return;
-            }
-            component.accesState = ShuttleConsoleAccesState.PilotAcces;
-            _audio.PlayPvs("/Audio/Machines/high_tech_confirm.ogg", uid, AudioParams.Default);
-            _popup.PopupEntity("Authorized to console as pilot.", uid, args.User);
-            UpdateState(uid, component);
-        }
-
-
-    }
-
-    private void OnComponentInit(EntityUid uid, ShuttleConsoleComponent component, ComponentInit args)
-    {
-        _itemSlotsSystem.AddItemSlot(uid, SharedShuttleConsoleComponent.IdSlotName, component.targetIdSlot);
-        _itemSlotsSystem.SetLock(uid, SharedShuttleConsoleComponent.IdSlotName,true);
-        var grid = Transform(uid).GridUid;
-        if (grid is  null)
-            return;
-        if (HasComp<DynamicCodeHolderComponent>(grid.Value))
-        {
-            component.accesState = ShuttleConsoleAccesState.NoAcces;
-        }
-        else
-        {
-            component.accesState = ShuttleConsoleAccesState.NotDynamic;
-        }
-        RefreshShuttleConsoles(grid.Value);
-    }
-
-    private void OnComponentRemove(EntityUid uid, ShuttleConsoleComponent component, ComponentRemove args)
-    {
-        _itemSlotsSystem.RemoveItemSlot(uid, component.targetIdSlot);
-
-    }
-
-    private void OnCrewSwitch(EntityUid uid, ShuttleConsoleComponent comp, SwitchedToCrewHudMessage args)
-    {
-        if (!args.Visible)
-            _itemSlotsSystem.TryEject(uid, comp.targetIdSlot, null, out var item);
-        _itemSlotsSystem.SetLock(uid, SharedShuttleConsoleComponent.IdSlotName, !args.Visible);
-        UpdateState(uid, comp);
-
-    }
-    private void OnNameChange(EntityUid consoleUid, NamedModulesComponent comp, ModuleNamingChangeEvent args)
-    {
-        comp.ButtonNames = args.NewNames;
-        Dirty(consoleUid, comp);
-    }
-
-    private void UpdateUI(EntityUid console, ShuttleConsoleComponent comp, object args)
-    {
-        UpdateState(console, comp);
-    }
-
-    private void OnConsoleReAnchor(EntityUid uid, ShuttleConsoleComponent comp, ReAnchorEvent args)
-    {
-        if (TryComp<DynamicCodeHolderComponent>(args.Grid, out var accesComp))
-        {
-            comp.accesState = ShuttleConsoleAccesState.NoAcces;
-            _itemSlotsSystem.TryEject(uid, comp.targetIdSlot, null, out var item);
-            _itemSlotsSystem.SetLock(uid, comp.targetIdSlot, true);
-        }
-        else
-        {
-            comp.accesState = ShuttleConsoleAccesState.NotDynamic;
-        }
-
-    }
-
 
     /// <summary>
     /// Refreshes all of the data for shuttle consoles.
     /// </summary>
     public void RefreshShuttleConsoles()
     {
-        //var exclusions = new List<ShuttleExclusionObject>();
-        //GetExclusions(ref exclusions);
+        var exclusions = new List<ShuttleExclusionObject>();
+        GetExclusions(ref exclusions);
         var query = AllEntityQuery<ShuttleConsoleComponent>();
-        while (query.MoveNext(out var uid, out var comp))
+        DockingInterfaceState? dockState = null;
+
+        while (query.MoveNext(out var uid, out _))
         {
-            UpdateState(uid, comp);
+            UpdateState(uid, ref dockState);
         }
     }
-
-    public void RefreshBulletStateForConsoles()
-    {
-        //var exclusions = new List<ShuttleExclusionObject>();
-        //GetExclusions(ref exclusions);
-        var query = AllEntityQuery<ShuttleConsoleComponent>();
-        while (query.MoveNext(out var uid, out var comp))
-        {
-            UpdateBulletState(uid, comp);
-        }
-    }
-
 
     /// <summary>
     /// Stop piloting if the window is closed.
     /// </summary>
     private void OnConsoleUIClose(EntityUid uid, ShuttleConsoleComponent component, BoundUIClosedEvent args)
     {
-        if ((ShuttleConsoleUiKey) args.UiKey != ShuttleConsoleUiKey.Key)
+        if ((ShuttleConsoleUiKey)args.UiKey != ShuttleConsoleUiKey.Key)
         {
             return;
         }
@@ -386,81 +193,42 @@ public sealed partial class ShuttleConsoleSystem : SharedShuttleConsoleSystem
         RemovePilot(args.Actor);
     }
 
-    private void OnConsoleUIOpened(EntityUid uid, ShuttleConsoleComponent component, BoundUIOpenedEvent args)
-    {
-        UpdateState(uid, component);
-    }
-
-
-    private void OnConsoleUIOpenAttempt(EntityUid uid, ShuttleConsoleComponent component,
+    private void OnConsoleUIOpenAttempt(
+        EntityUid uid,
+        ShuttleConsoleComponent component,
         ActivatableUIOpenAttemptEvent args)
     {
+        var shuttle = _transform.GetParentUid(uid);
+        var uiOpen = _crewedShuttle.AnyGunneryConsoleActiveByPlayer(shuttle, args.User);
+        var forceOne = HasComp<CrewedShuttleComponent>(shuttle) && !HasComp<AdvancedPilotComponent>(args.User);
 
-        if(component.accesState == ShuttleConsoleAccesState.NoAcces)
+        // Crewed shuttles should not allow people to have both gunnery and shuttle consoles open.
+        if (uiOpen && forceOne)
         {
             args.Cancel();
-            _popup.PopupEntity("Swipe ID to authorize yourself.", uid, args.User, PopupType.LargeCaution);
+            _popup.PopupClient(Loc.GetString("shuttle-console-crewed"), args.User);
             return;
-        }
-        var uis = _ui.GetActorUis(args.User);
-
-        var tgridUid = Transform(uid).GridUid;
-        if (tgridUid is null)
-            return;
-        var gridUid = tgridUid.Value;
-
-        if (!TryComp<IFFComponent>(gridUid, out var _))
-        {
-            _shuttle.SetIFFColor(gridUid, new Color
-            {
-                R = 10,
-                G = 50,
-                B = 100,
-                A = 100
-            });
-            _shuttle.AddIFFFlag(gridUid, IFFFlags.IsPlayerShuttle);
-            EnsureComp<ShuttleDeedComponent>(gridUid, out var deedComp);
-            List<string> possibleNames = new List<string> {"NX", "KXZ", "ALP", "BET", "TAN", "MV"};
-            _random.Shuffle(possibleNames);
-            _meta.SetEntityName(gridUid, $"Shuttle {possibleNames[0]}-{(int)_random.NextFloat(100f,999f)}");
-            deedComp.ShuttleUid = gridUid;
-            deedComp.ShuttleName = MetaData(gridUid).EntityName;
-            DirtyEntity(gridUid);
-
-
         }
 
         if (!TryPilot(args.User, uid))
             args.Cancel();
-        UpdateState(uid, component);
     }
 
     private void OnConsoleAnchorChange(EntityUid uid, ShuttleConsoleComponent component,
         ref AnchorStateChangedEvent args)
     {
-        if (args.Anchored)
-        {
-
-
-            if (HasComp<DynamicCodeHolderComponent>(args.Transform.GridUid))
-            {
-                component.accesState = ShuttleConsoleAccesState.NoAcces;
-                _itemSlotsSystem.TryEject(uid, component.targetIdSlot, null, out var item);
-                _itemSlotsSystem.SetLock(uid, component.targetIdSlot, true);
-            }
-            else
-            {
-                component.accesState = ShuttleConsoleAccesState.NotDynamic;
-            }
-
-        }
-
-        UpdateState(uid, component);
+        DockingInterfaceState? dockState = null;
+        UpdateState(uid, ref dockState);
     }
 
     private void OnConsolePowerChange(EntityUid uid, ShuttleConsoleComponent component, ref PowerChangedEvent args)
     {
-        UpdateState(uid, component);
+        DockingInterfaceState? dockState = null;
+        UpdateState(uid, ref dockState);
+        _shuttle.NfSetPowered(uid, component, args.Powered); // Frontier
+
+        // Handle job slots when power changes
+        HandleJobSlotsOnPowerChange(uid, component, args.Powered);
     }
 
     private bool TryPilot(EntityUid user, EntityUid uid)
@@ -472,6 +240,20 @@ public sealed partial class ShuttleConsoleSystem : SharedShuttleConsoleSystem
             !_blocker.CanInteract(user, uid))
         {
             return false;
+        }
+
+        if (!_access.IsAllowed(user, uid)) // Frontier: check access
+            return false; // Frontier
+
+        // Check if console is locked using effective lock state (considers grid-level locks)
+        if (TryComp<ShuttleConsoleLockComponent>(uid, out var lockComp))
+        {
+            var lockSystem = EntityManager.EntitySysManager.GetEntitySystem<SharedShuttleConsoleLockSystem>();
+            if (lockSystem.GetEffectiveLockState(uid, lockComp))
+            {
+                // _popup.PopupEntity(Loc.GetString("shuttle-console-locked"), uid, user); // Mono
+                return false;
+            }
         }
 
         var pilotComponent = EnsureComp<PilotComponent>(user);
@@ -495,6 +277,100 @@ public sealed partial class ShuttleConsoleSystem : SharedShuttleConsoleSystem
         args.State = new PilotComponentState(GetNetEntity(component.Console));
     }
 
+    private void OnStopPilotingAlert(Entity<PilotComponent> ent, ref StopPilotingAlertEvent args)
+    {
+        if (ent.Comp.Console != null)
+        {
+            RemovePilot(ent);
+        }
+    }
+
+    /// <summary>
+    /// Handles FTL lock toggling for docked shuttles
+    /// </summary>
+    private void OnToggleFTLLock(EntityUid uid, ShuttleConsoleComponent component, ToggleFTLLockRequestMessage args)
+    {
+        // Get the console's grid (shuttle)
+        var consoleXform = Transform(uid);
+        var shuttleGrid = consoleXform.GridUid;
+
+        Logger.DebugS("shuttle", $"Server received FTL lock request with {args.DockedEntities.Count} entities, enabled={args.Enabled}");
+
+        // If the shuttleGrid is null, we can't do anything
+        if (shuttleGrid == null)
+        {
+            Logger.DebugS("shuttle", $"Cannot toggle FTL lock: console {ToPrettyString(uid)} is not on a grid");
+            return;
+        }
+
+        bool processedMainGrid = false;
+
+        // Process each entity in the request
+        foreach (var dockedEntityNet in args.DockedEntities)
+        {
+            var dockedEntity = GetEntity(dockedEntityNet);
+
+            // Check if this is the main shuttle grid
+            if (dockedEntity == shuttleGrid)
+            {
+                processedMainGrid = true;
+            }
+
+            if (TryComp<FTLLockComponent>(dockedEntity, out var ftlLock))
+            {
+                Logger.DebugS("shuttle", $"Setting FTL lock for {ToPrettyString(dockedEntity)} to {args.Enabled}");
+                ftlLock.Enabled = args.Enabled;
+                Dirty(dockedEntity, ftlLock);
+            }
+        }
+
+        // If we didn't process the main grid yet, do it now
+        if (!processedMainGrid && shuttleGrid != null)
+        {
+            if (TryComp<FTLLockComponent>(shuttleGrid, out var ftlLock))
+            {
+                Logger.DebugS("shuttle", $"Setting FTL lock for main grid {ToPrettyString(shuttleGrid.Value)} to {args.Enabled}");
+                ftlLock.Enabled = args.Enabled;
+                Dirty(shuttleGrid.Value, ftlLock);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Sets the FTL lock state of a shuttle entity.
+    /// </summary>
+    /// <param name="shuttleUid">The shuttle entity to modify</param>
+    /// <param name="dockedEntities">List of docked entities to also modify, or empty to only modify the shuttle</param>
+    /// <param name="enabled">The desired FTL lock state (true to enable, false to disable)</param>
+    /// <returns>True if at least one entity was modified, false otherwise</returns>
+    public bool ToggleFTLLock(EntityUid shuttleUid, List<NetEntity> dockedEntities, bool enabled)
+    {
+        var modified = false;
+
+        // Modify the main shuttle if it has the component
+        if (TryComp<FTLLockComponent>(shuttleUid, out var shuttleFtlLock))
+        {
+            shuttleFtlLock.Enabled = enabled;
+            Dirty(shuttleUid, shuttleFtlLock);
+            modified = true;
+        }
+
+        // Modify any docked entities if provided
+        foreach (var dockedEntityNet in dockedEntities)
+        {
+            var dockedEntity = GetEntity(dockedEntityNet);
+
+            if (TryComp<FTLLockComponent>(dockedEntity, out var ftlLock))
+            {
+                ftlLock.Enabled = enabled;
+                Dirty(dockedEntity, ftlLock);
+                modified = true;
+            }
+        }
+
+        return modified;
+    }
+
     /// <summary>
     /// Returns the position and angle of all dockingcomponents.
     /// </summary>
@@ -509,6 +385,11 @@ public sealed partial class ShuttleConsoleSystem : SharedShuttleConsoleSystem
             if (xform.ParentUid != xform.GridUid)
                 continue;
 
+            // Frontier: skip unanchored docks (e.g. portable gaslocks)
+            if (HasComp<AnchorableComponent>(uid) && !xform.Anchored)
+                continue;
+            // End Frontier
+
             var gridDocks = result.GetOrNew(GetNetEntity(xform.GridUid.Value));
 
             var state = new DockingPortState()
@@ -521,6 +402,11 @@ public sealed partial class ShuttleConsoleSystem : SharedShuttleConsoleSystem
                     _xformQuery.TryGetComponent(comp.DockedWith, out var otherDockXform) ?
                     GetNetEntity(otherDockXform.GridUid) :
                     null,
+                LabelName = comp.Name != null ? Loc.GetString(comp.Name) : null, // Frontier: docking labels
+                RadarColor = comp.RadarColor, // Frontier
+                HighlightedRadarColor = comp.HighlightedRadarColor, // Frontier
+                DockType = comp.DockType, // Frontier
+                ReceiveOnly = comp.ReceiveOnly, // Frontier
             };
 
             gridDocks.Add(state);
@@ -529,108 +415,7 @@ public sealed partial class ShuttleConsoleSystem : SharedShuttleConsoleSystem
         return result;
     }
 
-    public CrewInterfaceState GetCrewState(EntityUid consoleUid, ShuttleConsoleComponent shuttleConsole)
-    {
-        var State = new CrewInterfaceState("", null);
-        if (_itemSlotsSystem.TryGetSlot(consoleUid, SharedShuttleConsoleComponent.IdSlotName, out var itemSlot) &&
-            itemSlot.Item is not null)
-        {
-            if (!TryComp<IdCardComponent>(itemSlot.Item.Value, out var comp))
-                return State;
-            if (!TryComp<DynamicCodeHolderComponent>(itemSlot.Item.Value, out var dynamicAcces))
-                return State;
-            var gridId = Transform(consoleUid).GridUid;
-            if (gridId is null)
-                return State;
-            if (!TryComp<DynamicCodeHolderComponent>(gridId, out var gridDynAcces))
-                return State;
-            if(comp.FullName is not null)
-                State.IdName = comp.FullName;
-            State.IdCodes = gridDynAcces.mappedCodes.Keys.ToHashSet();
-            State.Pressed = new HashSet<string>();
-            foreach (var key in State.IdCodes)
-            {
-                if (!_codes.hasAllKeys(gridDynAcces.mappedCodes[key], dynamicAcces))
-                    continue;
-                State.Pressed.Add(key);
-            }
-            State.hasId = true;
-        }
-
-        return State;
-
-    }
-
-
-    public IFFInterfaceState GetIFFState(EntityUid consoleUid, Dictionary<NetEntity, List<TurretState>>? turrets)
-    {
-        var projectiles = GetProjectilesInRange(consoleUid);
-        turrets ??= GetAllTurrets(consoleUid);
-        return new IFFInterfaceState(projectiles, turrets);
-    }
-
-    public List<ProjectileState> GetProjectilesInRange(EntityUid consoleUid)
-    {
-        var projectiles = new List<ProjectileState>();
-        var consolePosition = _transform.GetWorldPosition(consoleUid);
-        var range = SharedRadarConsoleSystem.DefaultMaxRange;
-
-        var query = EntityQueryEnumerator<ProjectileIFFComponent, MetaDataComponent, TransformComponent>();
-        while (query.MoveNext(out var uid, out var projectileIFF, out var metadata, out var transform))
-        {
-            if ((consolePosition - _transform.GetWorldPosition(uid)).Length() > range)
-            {
-                continue;
-            }
-
-            var projectile = new ProjectileState
-            {
-                Coordinates = GetNetCoordinates(_transform.GetMoverCoordinates(uid, transform)),
-                VisualTypeIndex = (int)projectileIFF.VisualType,
-                Color = projectileIFF.Color,
-                Scale = projectileIFF.Scale // Add this line to support scale
-            };
-            projectiles.Add(projectile);
-        }
-
-        return projectiles;
-    }
-
-    public Dictionary<NetEntity, List<TurretState>> GetAllTurrets(EntityUid consoleUid)
-    {
-        List<EntityUid>? controlledUids = null;
-        if (TryComp<TargetingConsoleComponent>(consoleUid, out var targCon))
-            controlledUids = targCon.CurrentGroup;
-
-        var turrets = new Dictionary<NetEntity, List<TurretState>>();
-        var query = EntityQueryEnumerator<TurretIFFComponent, TransformComponent>();
-        while (query.MoveNext(out var uid, out var turretIFF, out var transform))
-        {
-            if (transform?.GridUid == null)
-                continue;
-
-            var netEntity = GetNetEntity(transform.GridUid.Value);
-            var turret = new TurretState
-            {
-                IsControlled = controlledUids == null || controlledUids.Contains(uid),
-                Coordinates = GetNetCoordinates(transform.Coordinates)
-            };
-
-            if (turrets.TryGetValue(netEntity, out var gridTurrets))
-            {
-                gridTurrets.Add(turret);
-            }
-            else
-            {
-                gridTurrets = new List<TurretState> { turret };
-                turrets.Add(netEntity, gridTurrets);
-            }
-        }
-
-        return turrets;
-    }
-
-    private void UpdateState(EntityUid consoleUid, ShuttleConsoleComponent console)
+    private void UpdateState(EntityUid consoleUid, ref DockingInterfaceState? dockState)
     {
         EntityUid? entity = consoleUid;
 
@@ -642,14 +427,12 @@ public sealed partial class ShuttleConsoleSystem : SharedShuttleConsoleSystem
         RaiseLocalEvent(entity.Value, ref getShuttleEv);
         entity = getShuttleEv.Console;
 
-        TryComp<TransformComponent>(entity, out var consoleXform);
+        TryComp(entity, out TransformComponent? consoleXform);
         var shuttleGridUid = consoleXform?.GridUid;
 
         NavInterfaceState navState;
         ShuttleMapInterfaceState mapState;
-        var dockState = GetDockState();
-        var iffState = GetIFFState(consoleUid, null);
-        var crewState = GetCrewState(consoleUid, console);
+        dockState ??= GetDockState();
 
         if (shuttleGridUid != null && entity != null)
         {
@@ -658,7 +441,7 @@ public sealed partial class ShuttleConsoleSystem : SharedShuttleConsoleSystem
         }
         else
         {
-            navState = new NavInterfaceState(0f, null, 0, new Dictionary<NetEntity, List<DockingPortState>>(), InertiaDampeningMode.Dampened, GetNetEntity(consoleUid));
+            navState = new NavInterfaceState(0f, null, null, new Dictionary<NetEntity, List<DockingPortState>>(), InertiaDampeningMode.Dampen); // Frontier: inertia dampening);
             mapState = new ShuttleMapInterfaceState(
                 FTLState.Invalid,
                 default,
@@ -668,42 +451,8 @@ public sealed partial class ShuttleConsoleSystem : SharedShuttleConsoleSystem
 
         if (_ui.HasUi(consoleUid, ShuttleConsoleUiKey.Key))
         {
-            var state = new ShuttleBoundUserInterfaceState(navState, mapState, dockState, crewState)
-            {
-                canAccesCrew = (console.accesState == ShuttleConsoleAccesState.CaptainAcces),
-                IFFState = iffState,
-            };
-            state.DirtyFlags = StateDirtyFlags.All;
-            // send for 5 ticks to make sure it actually reaches client... (yes i dont know why the first one or two get always lost , shit-UI networking i guess)
-            state.sendingDock = 5;
-            _ui.SetUiState(consoleUid, ShuttleConsoleUiKey.Key, state);
-            console.LastUpdatedState = state;
+            _ui.SetUiState(consoleUid, ShuttleConsoleUiKey.Key, new ShuttleBoundUserInterfaceState(navState, mapState, dockState));
         }
-    }
-
-    private void UpdateBulletState(EntityUid consoleUid, ShuttleConsoleComponent console)
-    {
-        if (!_ui.IsUiOpen(consoleUid, ShuttleConsoleUiKey.Key))
-            return;
-        if (console.LastUpdatedState is null)
-            return;
-        var newState = new ShuttleBoundUserInterfaceState(console.LastUpdatedState);
-        newState.IFFState = GetIFFState(consoleUid, console.LastUpdatedState?.IFFState?.Turrets);
-        newState.DirtyFlags = StateDirtyFlags.IFF;
-        if (console.LastUpdatedState!.sendingDock > 0)
-        {
-            newState.DirtyFlags = StateDirtyFlags.All;
-            console.LastUpdatedState!.sendingDock--;
-        }
-        else
-        { // dont send over the network.
-            newState.CrewState = null;
-            newState.NavState = null;
-            newState.DockState = null;
-            newState.MapState = null;
-        }
-        _ui.SetUiState(consoleUid, ShuttleConsoleUiKey.Key, newState);
-
     }
 
     public override void Update(float frameTime)
@@ -712,7 +461,6 @@ public sealed partial class ShuttleConsoleSystem : SharedShuttleConsoleSystem
 
         var toRemove = new ValueList<(EntityUid, PilotComponent)>();
         var query = EntityQueryEnumerator<PilotComponent>();
-        RefreshBulletStateForConsoles();
 
         while (query.MoveNext(out var uid, out var comp))
         {
@@ -807,29 +555,43 @@ public sealed partial class ShuttleConsoleSystem : SharedShuttleConsoleSystem
     /// </summary>
     public NavInterfaceState GetNavState(Entity<RadarConsoleComponent?, TransformComponent?> entity, Dictionary<NetEntity, List<DockingPortState>> docks)
     {
-        if (!Resolve(entity, ref entity.Comp1, ref entity.Comp2))
-            return new NavInterfaceState(SharedRadarConsoleSystem.DefaultMaxRange, null, 0, docks, Shared._NF.Shuttles.Events.InertiaDampeningMode.Dampened, GetNetEntity(entity.Owner)); // Frontier: add inertia dampening
+        if (!Resolve(entity, ref entity.Comp1, ref entity.Comp2, false))
+            return new NavInterfaceState(SharedRadarConsoleSystem.DefaultMaxRange, null, null, docks, Shared._NF.Shuttles.Events.InertiaDampeningMode.Dampen); // Frontier: add inertia dampening
+
+        // Get port names from the console component if available
+        var portNames = new Dictionary<string, string>();
+        if (TryComp<ShuttleConsoleComponent>(entity, out var consoleComp))
+        {
+            portNames = consoleComp.PortNames;
+        }
 
         return GetNavState(
             entity,
             docks,
             entity.Comp2.Coordinates,
-            entity.Comp2.LocalRotation.Theta);
+            entity.Comp2.LocalRotation,
+            portNames);
     }
 
     public NavInterfaceState GetNavState(
         Entity<RadarConsoleComponent?, TransformComponent?> entity,
         Dictionary<NetEntity, List<DockingPortState>> docks,
         EntityCoordinates coordinates,
-        double angle)
+        Angle angle,
+        Dictionary<string, string>? portNames = null)
     {
-        if (!Resolve(entity, ref entity.Comp1, ref entity.Comp2))
-            return new NavInterfaceState(SharedRadarConsoleSystem.DefaultMaxRange, GetNetCoordinates(coordinates), angle, docks, InertiaDampeningMode.Dampened, GetNetEntity(entity.Owner)); // Frontier: add inertial dampening
+        if (!Resolve(entity, ref entity.Comp1, ref entity.Comp2, false))
+            return new NavInterfaceState(SharedRadarConsoleSystem.DefaultMaxRange, GetNetCoordinates(coordinates), angle, docks, InertiaDampeningMode.Dampen); // Frontier: add inertial dampening
 
-        return new NavInterfaceState(entity.Comp1.MaxRange, GetNetCoordinates(coordinates), angle, docks, _shuttle.NfGetInertiaDampeningMode(entity), GetNetEntity(entity.Owner))
-        {
-            AlignToWorld = entity.Comp1.KeepWorldAligned,
-        }; // Frontier: inertia dampening
+        return new NavInterfaceState(
+            entity.Comp1.MaxRange,
+            GetNetCoordinates(coordinates),
+            angle,
+            docks,
+            _shuttle.NfGetInertiaDampeningMode(entity), // Frontier: inertia dampening
+            portNames,
+            entity.Comp1.Pannable, // Mono
+            entity.Comp1.RelativePanning); // Mono
     }
 
     /// <summary>
@@ -866,5 +628,130 @@ public sealed partial class ShuttleConsoleSystem : SharedShuttleConsoleSystem
             stateDuration,
             beacons ?? new List<ShuttleBeaconObject>(),
             exclusions ?? new List<ShuttleExclusionObject>());
+    }
+
+    /// <summary>
+    /// Handles job slots when shuttle console power changes.
+    /// </summary>
+    private void HandleJobSlotsOnPowerChange(EntityUid consoleUid, ShuttleConsoleComponent component, bool powered)
+    {
+        // Get the console's transform to find the grid
+        if (!TryComp<TransformComponent>(consoleUid, out var consoleXform) || consoleXform.GridUid == null)
+            return;
+
+        var gridUid = consoleXform.GridUid.Value;
+
+        // Only handle job slots for shuttles (grids with ShuttleComponent)
+        if (!HasComp<ShuttleComponent>(gridUid))
+            return;
+
+        // Find the station that owns this shuttle
+        var owningStation = _station.GetOwningStation(gridUid);
+        if (owningStation == null)
+            return;
+
+        // Check if the grid has any powered shuttle consoles
+        var hasPoweredConsole = HasPoweredShuttleConsole(gridUid);
+
+        if (!hasPoweredConsole)
+        {
+            // No powered consoles
+            SaveAndCloseJobSlots(gridUid, owningStation.Value);
+        }
+        else
+        {
+            // Has powered console
+            RestoreJobSlots(gridUid, owningStation.Value);
+        }
+    }
+
+    /// <summary>
+    /// Checks if the grid has any powered shuttle consoles.
+    /// </summary>
+    private bool HasPoweredShuttleConsole(EntityUid gridUid)
+    {
+        var query = AllEntityQuery<ShuttleConsoleComponent, TransformComponent>();
+
+        while (query.MoveNext(out var consoleUid, out _, out var xform))
+        {
+            // Check if this console is on our grid
+            if (xform.GridUid != gridUid)
+                continue;
+
+            // Check if this console is powered
+            if (this.IsPowered(consoleUid, EntityManager))
+                return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Saves the current job slots for the station and sets them all to 0 (closed).
+    /// </summary>
+    private void SaveAndCloseJobSlots(EntityUid gridUid, EntityUid station)
+    {
+        // Get or create the job slots component on the grid
+        var jobSlotsComp = EnsureComp<ShuttleConsoleJobSlotsComponent>(gridUid);
+
+        // If we already have saved slots, don't save again
+        if (jobSlotsComp.SavedJobSlots.Count > 0)
+            return;
+
+        // Clear any previous saved state and set the owning station
+        jobSlotsComp.SavedJobSlots.Clear();
+        jobSlotsComp.OwningStation = station;
+
+        // Get all current job slots for the station
+        if (!TryComp<StationJobsComponent>(station, out var stationJobs))
+            return;
+
+        // Save current job slots
+        foreach (var (jobId, slots) in stationJobs.JobList)
+        {
+            // Only save jobs that have slots available (not 0)
+            if (slots != 0)
+            {
+                jobSlotsComp.SavedJobSlots[jobId] = slots;
+
+                // Set the job slot to 0 (closed)
+                _stationJobs.TrySetJobSlot(station, jobId, 0);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Restores the previously saved job slots for the station.
+    /// </summary>
+    private void RestoreJobSlots(EntityUid gridUid, EntityUid station)
+    {
+        // Get the job slots component from the grid
+        if (!TryComp<ShuttleConsoleJobSlotsComponent>(gridUid, out var jobSlotsComp))
+            return;
+
+        // If no saved slots, nothing to restore
+        if (jobSlotsComp.SavedJobSlots.Count == 0)
+            return;
+
+        // Verify this is for the correct station
+        if (jobSlotsComp.OwningStation != station)
+            return;
+
+        // Restore all saved job slots
+        foreach (var (jobId, savedSlots) in jobSlotsComp.SavedJobSlots)
+        {
+            if (savedSlots.HasValue)
+            {
+                _stationJobs.TrySetJobSlot(station, jobId, savedSlots.Value);
+            }
+            else
+            {
+                _stationJobs.MakeJobUnlimited(station, jobId);
+            }
+        }
+
+        // Clear the saved state
+        jobSlotsComp.SavedJobSlots.Clear();
+        jobSlotsComp.OwningStation = null;
     }
 }
