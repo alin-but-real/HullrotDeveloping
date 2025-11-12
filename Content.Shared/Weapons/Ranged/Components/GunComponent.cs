@@ -311,6 +311,13 @@ public sealed partial class GunComponent : Component
 
     [DataField]
     public float EjectAngleOffset = 3.7f;
+
+     // Mono
+    /// <summary>
+    /// If we have a <see cref="ThermalSignatureComponent">, how much heat to generate per shot.
+    /// </summary>
+    [DataField]
+    public float ShootThermalSignature = 0f;
 }
 
 [Flags]
