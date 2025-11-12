@@ -132,8 +132,7 @@ public abstract partial class SharedProjectileSystem : EntitySystem
                 component.IgnoreResistances,
                 origin: component.Shooter,
                 tool: uid,
-                armorPen: component.HullrotArmorPenetration, //hullrot edit
-                stopPower: component.stoppingPower)  //hullrot edit
+                plateDamage: component.PlateDamage)  //hullrot edit
             : new DamageSpecifier(ev.Damage);
         var deleted = Deleted(target);
 

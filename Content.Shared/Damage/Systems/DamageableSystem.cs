@@ -147,7 +147,7 @@ namespace Content.Shared.Damage
             bool interruptsDoAfters = true, DamageableComponent? damageable = null, EntityUid? origin = null, EntityUid? tool = null,
             // Shitmed Change
             bool? canSever = true, bool? canEvade = false, float? partMultiplier = 1.00f, TargetBodyPart? targetPart = null, bool doPartDamage = true,
-            float armorPen = 0, float stopPower = 0)
+            float plateDamage = -1)
         {
             if (!uid.HasValue || !_damageableQuery.Resolve(uid.Value, ref damageable, false))
             {
@@ -198,8 +198,7 @@ namespace Content.Shared.Damage
 
                 var ev = new DamageModifyEvent(damage, origin, targetPart, tool)
                 {
-                    HullrotArmorPen = armorPen,
-                    stoppingPower = stopPower,
+                    PlateDamage = plateDamage
                 }; // Shitmed Change
                 RaiseLocalEvent(uid.Value, ev);
                 damage = ev.Damage;
@@ -426,9 +425,11 @@ namespace Content.Shared.Damage
         public EntityUid? Tool;
         public readonly TargetBodyPart? TargetPart; // Shitmed Change
         // HULLROT CHANGE - SPCR 2025
-        public float HullrotArmorPen = 0;
-        public float stoppingPower = 0;
+        // public float HullrotArmorPen = 0;
+        // public float stoppingPower = 0;
         // hullrot change end
+        // HULLROT CHANGE - .2 2025
+        public float PlateDamage = -1;
 
 
         public DamageModifyEvent(DamageSpecifier damage, EntityUid? origin = null, TargetBodyPart? targetPart = null, EntityUid? tool = null) // Shitmed Change

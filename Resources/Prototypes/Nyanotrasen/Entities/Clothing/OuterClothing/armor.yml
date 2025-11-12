@@ -27,15 +27,10 @@
     sprite: Nyanotrasen/Clothing/OuterClothing/Armor/bogu.rsi
   - type: DegradeableArmor
     armorMaxHealth: 1000
-    armorType: Metallic
-    armorRepair: SteelPlate
-    initialModifiers:
-      flatReductions:
-        Blunt: 25
-        Slash: 25
-        Piercing: 45
-        Heat: 15
-        Caustic: 25
+    resistedTypes: 
+      - Blunt
+      - Slash
+      - Pierce
   - type: ClothingSpeedModifier
     walkModifier: 0.9
     sprintModifier: 0.9

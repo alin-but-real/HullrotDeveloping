@@ -391,15 +391,19 @@
     damageCoefficient: 0.9
   - type: DegradeableArmor
     armorMaxHealth: 750
-    armorType: Metallic
-    armorRepair: HomelandAlloy
-    initialModifiers:
-      flatReductions:
-        Blunt: 20
-        Slash: 15
-        Piercing: 45
-        Heat: 5
-        Caustic: 5
+    resistedTypes: 
+      - Blunt
+      - Slash
+      - Pierce
+  - type: Armor
+    modifiers:
+      coefficients:
+        Blunt: 0.85
+        Slash: 0.85
+        Piercing: 0.85
+        Heat: 0.85
+        Caustic: 0.85
+
   - type: ClothingSpeedModifier
     walkModifier: 0.9
     sprintModifier: 0.9

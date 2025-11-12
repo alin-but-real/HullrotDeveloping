@@ -67,16 +67,10 @@
     damageCoefficient: 0.65
   - type: DegradeableArmor
     armorMaxHealth: 600
-    armorType: Metallic
-    armorRepair: SteelPlate
-    initialModifiers:
-      flatReductions:
-        Blunt: 10
-        Slash: 25
-        Piercing: 45
-        Heat: 15
-        Caustic: 15
-        Radiation: 25
+    resistedTypes: 
+      - Blunt
+      - Slash
+      - Pierce
   - type: ClothingSpeedModifier
     walkModifier: 0.8
     sprintModifier: 0.85
