@@ -4,7 +4,7 @@ using Content.Shared.Containers.ItemSlots;
 using Robust.Shared.Prototypes;
 using Content.Shared.Radio;
 using Content.Shared.Access;
-using Content.Shared._NF.Bank.Components;
+// using Content.Shared._NF.Bank.Components;
 
 namespace Content.Shared._NF.Shipyard.Components;
 
@@ -56,11 +56,11 @@ public sealed partial class ShipyardConsoleComponent : Component
     [DataField]
     public bool CanTransferDeed = true;
 
-    /// <summary>
-    /// The accounts to receive payment, and the tax rate to apply for ship sales from this console.
-    /// </summary>
-    [DataField]
-    public Dictionary<SectorBankAccount, float> TaxAccounts = new();
+    // /// <summary>
+    // /// The accounts to receive payment, and the tax rate to apply for ship sales from this console.
+    // /// </summary>
+    // [DataField]
+    // public Dictionary<SectorBankAccount, float> TaxAccounts = new();
 
     /// <summary>
     /// If true, the base sale rate is ignored before calculating taxes.

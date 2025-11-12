@@ -27,10 +27,7 @@
 using Content.Server.Access.Systems;
 using Content.Server.Popups;
 using Content.Server.Radio.EntitySystems;
-using Content.Server._NF.Bank;
 using Content.Server._NF.Shipyard.Components;
-using Content.Server._NF.ShuttleRecords;
-using Content.Shared._NF.Bank.Components;
 using Content.Shared._NF.Shipyard;
 using Content.Shared._NF.Shipyard.Events;
 using Content.Shared._NF.Shipyard.BUI;
@@ -66,17 +63,20 @@ using Content.Server.Shuttles.Systems;
 using Content.Shared.UserInterface;
 using Robust.Shared.Audio.Systems;
 using Content.Shared.Access;
-using Content.Shared._NF.Bank.BUI;
+// using Content.Shared._NF.Bank.BUI;
 using Content.Shared._NF.ShuttleRecords;
 using Content.Server.StationEvents.Components;
-using Content.Shared._Mono.Company;
-using Content.Shared.Forensics.Components;
+// using Content.Shared._Mono.Company;
+// using Content.Shared.Forensics.Components;
 using Content.Shared.Shuttles.Components;
 using Robust.Shared.Player;
 using Content.Shared._Mono.Ships.Components;
 using Content.Shared._Mono.Shipyard;
 using Content.Shared.Tag;
 using Robust.Shared.Timing;
+using Content.Server.Bank;
+using Content.Server._NF.ShuttleRecords;
+using Content.Shared.Bank.Components;
 
 namespace Content.Server._NF.Shipyard.Systems;
 
@@ -250,44 +250,44 @@ public sealed partial class ShipyardSystem : SharedShipyardSystem
             }
         }
 
-        // Add company information to the shuttle from the ID card or voucher
-        string? companyName = null;
+        // // Add company information to the shuttle from the ID card or voucher
+        // string? companyName = null;
 
         // First try to get company from ID card
-        if (TryComp<IdCardComponent>(targetId, out var idCardCompany) &&
-            !string.IsNullOrEmpty(idCardCompany.CompanyName))
-        {
-            companyName = idCardCompany.CompanyName;
-        }
-        // If no ID card company, try to get from voucher
-        else if (TryComp<ShipyardVoucherComponent>(targetId, out var voucherCompany) &&
-                 !string.IsNullOrEmpty(voucherCompany.CompanyName))
-        {
-            companyName = voucherCompany.CompanyName;
-        }
+        // if (TryComp<IdCardComponent>(targetId, out var idCardCompany) &&
+        //     !string.IsNullOrEmpty(idCardCompany.CompanyName))
+        // {
+        //     companyName = idCardCompany.CompanyName;
+        // }
+        // // If no ID card company, try to get from voucher
+        // else if (TryComp<ShipyardVoucherComponent>(targetId, out var voucherCompany) &&
+        //          !string.IsNullOrEmpty(voucherCompany.CompanyName))
+        // {
+        //     companyName = voucherCompany.CompanyName;
+        // }
 
-        // Apply company to ship if we found one
-        if (!string.IsNullOrEmpty(companyName))
-        {
-            var shipCompany = EnsureComp<CompanyComponent>(shuttleUid);
-            shipCompany.CompanyName = companyName;
-            Dirty(shuttleUid, shipCompany);
-        }
+        // // Apply company to ship if we found one
+        // if (!string.IsNullOrEmpty(companyName))
+        // {
+        //     var shipCompany = EnsureComp<CompanyComponent>(shuttleUid);
+        //     shipCompany.CompanyName = companyName;
+        //     Dirty(shuttleUid, shipCompany);
+        // }
 
-        EntityUid? shuttleStation = null;
-        // setting up any stations if we have a matching game map prototype to allow late joins directly onto the vessel
-        if (_prototypeManager.TryIndex<GameMapPrototype>(vessel.ID, out var stationProto))
-        {
-            List<EntityUid> gridUids = new()
-            {
-                shuttleUid
-            };
-            shuttleStation = _station.InitializeNewStation(stationProto.Stations[vessel.ID], gridUids);
-            name = Name(shuttleStation.Value);
+        // EntityUid? shuttleStation = null;
+        // // setting up any stations if we have a matching game map prototype to allow late joins directly onto the vessel
+        // if (_prototypeManager.TryIndex<GameMapPrototype>(vessel.ID, out var stationProto))
+        // {
+        //     List<EntityUid> gridUids = new()
+        //     {
+        //         shuttleUid
+        //     };
+        //     shuttleStation = _station.InitializeNewStation(stationProto.Stations[vessel.ID], gridUids);
+        //     name = Name(shuttleStation.Value);
 
-            var vesselInfo = EnsureComp<ExtraShuttleInformationComponent>(shuttleStation.Value);
-            vesselInfo.Vessel = vessel.ID;
-        }
+        //     var vesselInfo = EnsureComp<ExtraShuttleInformationComponent>(shuttleStation.Value);
+        //     vesselInfo.Vessel = vessel.ID;
+        // }
 
         // Add FTLLockComponent to the shuttle with Enabled set to true
         // We need to use the ShuttleConsoleSystem to properly set the Enabled property
@@ -349,36 +349,36 @@ public sealed partial class ShipyardSystem : SharedShipyardSystem
         // and not entirely dependent upon linking ID card entity to station records key lookups
         // its just bad
 
-        var stationList = EntityQueryEnumerator<StationRecordsComponent>();
+        // var stationList = EntityQueryEnumerator<StationRecordsComponent>();
 
-        if (TryComp<StationRecordKeyStorageComponent>(targetId, out var keyStorage)
-                && shuttleStation != null
-                && keyStorage.Key != null)
-        {
-            bool recSuccess = false;
-            while (stationList.MoveNext(out var stationUid, out var stationRecComp))
-            {
-                if (!_records.TryGetRecord<GeneralStationRecord>(keyStorage.Key.Value, out var record))
-                    continue;
+        // if (TryComp<StationRecordKeyStorageComponent>(targetId, out var keyStorage)
+        //         && shuttleStation != null
+        //         && keyStorage.Key != null)
+        // {
+        //     bool recSuccess = false;
+        //     while (stationList.MoveNext(out var stationUid, out var stationRecComp))
+        //     {
+        //         if (!_records.TryGetRecord<GeneralStationRecord>(keyStorage.Key.Value, out var record))
+        //             continue;
 
-                //_records.RemoveRecord(keyStorage.Key.Value);
-                _records.AddRecordEntry(shuttleStation.Value, record);
-                recSuccess = true;
-                break;
-            }
+        //         //_records.RemoveRecord(keyStorage.Key.Value);
+        //         _records.AddRecordEntry(shuttleStation.Value, record);
+        //         recSuccess = true;
+        //         break;
+        //     }
 
-            if (!recSuccess &&
-                _mind.TryGetMind(player, out var mindUid, out var mindComp)
-                && _prefManager.GetPreferences(_mind.GetSession(mindComp)!.UserId).SelectedCharacter is HumanoidCharacterProfile profile)
-            {
-                TryComp<FingerprintComponent>(player, out var fingerprintComponent);
-                TryComp<DnaComponent>(player, out var dnaComponent);
-                TryComp<StationRecordsComponent>(shuttleStation, out var stationRec);
-                _records.CreateGeneralRecord(shuttleStation.Value, targetId, profile.Name, profile.Age, profile.Species, profile.Gender, $"Captain", fingerprintComponent!.Fingerprint, dnaComponent!.DNA, profile, stationRec!);
-            }
-        }
-        _records.Synchronize(shuttleStation!.Value);
-        _records.Synchronize(station);
+        //     if (!recSuccess &&
+        //         _mind.TryGetMind(player, out var mindUid, out var mindComp)
+        //         && _prefManager.GetPreferences(_mind.GetSession(mindComp)!.UserId).SelectedCharacter is HumanoidCharacterProfile profile)
+        //     {
+        //         TryComp<FingerprintComponent>(player, out var fingerprintComponent);
+        //         TryComp<DnaComponent>(player, out var dnaComponent);
+        //         TryComp<StationRecordsComponent>(shuttleStation, out var stationRec);
+        //         _records.CreateGeneralRecord(shuttleStation.Value, targetId, profile.Name, profile.Age, profile.Species, profile.Gender, $"Captain", fingerprintComponent!.Fingerprint, dnaComponent!.DNA, profile, stationRec!);
+        //     }
+        // }
+        // _records.Synchronize(shuttleStation!.Value);
+        // _records.Synchronize(station);
 
         EntityManager.AddComponents(shuttleUid, vessel.AddComponents);
 
@@ -386,7 +386,8 @@ public sealed partial class ShipyardSystem : SharedShipyardSystem
         AddShipAccessToEntities(shuttleUid);
 
         // Ensure cleanup on ship sale
-        EnsureComp<LinkedLifecycleGridParentComponent>(shuttleUid);
+        //.2 edit | WE'LL BE FIIIINE
+        // EnsureComp<LinkedLifecycleGridParentComponent>(shuttleUid);
 
         var sellValue = 0;
         if (!voucherUsed)
@@ -549,23 +550,26 @@ public sealed partial class ShipyardSystem : SharedShipyardSystem
 
         RemComp<ShuttleDeedComponent>(targetId);
 
-        if (!voucherUsed)
-        {
-            if (!component.IgnoreBaseSaleRate)
-                bill = (int)(bill * _baseSaleRate);
 
-            int originalBill = bill;
-            foreach (var (account, taxCoeff) in component.TaxAccounts)
-            {
-                var tax = CalculateSalesTax(originalBill, taxCoeff);
-                _bank.TrySectorDeposit(account, tax, LedgerEntryType.ShipyardTax); // BlackMarketShipyardTax->ShipyardTAx
-                bill -= tax;
-            }
-            bill = int.Max(0, bill);
+        //.2 - looks like this code's for buying a ship and taxing you. 
+        // we'll fine fine and fix this later to make sure you actually spend your money when selling
+        // if (!voucherUsed)
+        // {
+        //     if (!component.IgnoreBaseSaleRate)
+        //         bill = (int)(bill * _baseSaleRate);
 
-            _bank.TryBankDeposit(player, bill);
-            PlayConfirmSound(player, uid, component);
-        }
+        //     int originalBill = bill;
+        //     foreach (var (account, taxCoeff) in component.TaxAccounts)
+        //     {
+        //         var tax = CalculateSalesTax(originalBill, taxCoeff);
+        //         _bank.TrySectorDeposit(account, tax, LedgerEntryType.ShipyardTax); // BlackMarketShipyardTax->ShipyardTAx
+        //         bill -= tax;
+        //     }
+        //     bill = int.Max(0, bill);
+
+        //     _bank.TryBankDeposit(player, bill);
+        //     PlayConfirmSound(player, uid, component);
+        // }
 
         var name = GetFullName(deed);
         SendSellMessage(uid, deed.ShuttleOwner!, name, component.ShipyardChannel, player, secret: false);
