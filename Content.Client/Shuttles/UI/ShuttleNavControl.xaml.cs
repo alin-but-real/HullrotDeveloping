@@ -25,7 +25,7 @@ using System.Numerics;
 using Content.Client._Mono.Radar;
 using Content.Client.Station; // Frontier
 using Content.Shared._Crescent.ShipShields;
-using Content.Shared._Mono.Company;
+//using Content.Shared._Mono.Company;
 using Content.Shared._Mono.Detection;
 using Content.Shared._Mono.Radar;
 using Content.Shared.Shuttles.BUIStates;
@@ -534,16 +534,16 @@ public partial class ShuttleNavControl : BaseShuttleControl // Mono
 
                     // Get company color if entity has CompanyComponent
                     var displayColor = labelColor;
-                    if (!hideLabel && EntManager.TryGetComponent(gUid, out Shared._Mono.Company.CompanyComponent? companyComp) &&
-                        !string.IsNullOrEmpty(companyComp.CompanyName))
-                    {
-                        var prototypeManager = IoCManager.Resolve<IPrototypeManager>();
-                        CompanyPrototype? prototype = null;
-                        if (prototypeManager.TryIndex(companyComp.CompanyName, out prototype) && prototype != null)
-                        {
-                            displayColor = prototype.Color;
-                        }
-                    }
+                    // if (!hideLabel && EntManager.TryGetComponent(gUid, out Shared._Mono.Company.CompanyComponent? companyComp) &&
+                    //     !string.IsNullOrEmpty(companyComp.CompanyName))
+                    // {
+                    //     var prototypeManager = IoCManager.Resolve<IPrototypeManager>();
+                    //     CompanyPrototype? prototype = null;
+                    //     if (prototypeManager.TryIndex(companyComp.CompanyName, out prototype) && prototype != null)
+                    //     {
+                    //         displayColor = prototype.Color;
+                    //     }
+                    // }
 
                     // Split label text into lines
                     var lines = labelText.Split('\n');
@@ -891,7 +891,7 @@ public partial class ShuttleNavControl : BaseShuttleControl // Mono
                 v2 = Vector2.Transform(v2, matrix);
                 v2.Y = -v2.Y;
                 v2 = ScalePosition(v2);
-                handle.DrawLine(v1, v2, visuals.ShieldColor);
+                handle.DrawLine(v1, v2, Color.Aquamarine);
             }
         }
     }

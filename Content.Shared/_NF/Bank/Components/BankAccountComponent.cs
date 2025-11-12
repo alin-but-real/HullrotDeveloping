@@ -7,10 +7,10 @@ namespace Content.Shared.Bank.Components;
 public sealed partial class BankAccountComponent : Component
 {
     [DataField("balance")]
-    public long Balance;
+    public int Balance;
 }
 [Serializable, NetSerializable]
 public sealed partial class BankAccountComponentState : ComponentState
 {
-    public long Balance;
+    public int Balance;
 }

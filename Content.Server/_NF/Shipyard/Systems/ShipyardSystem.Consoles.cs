@@ -985,11 +985,11 @@ public sealed partial class ShipyardSystem : SharedShipyardSystem
             return 0.0f;
 
         var taxRate = 0.0f;
-        foreach (var taxAccount in console.Comp.TaxAccounts)
-        {
-            taxRate += taxAccount.Value;
-        }
-        taxRate = 1.0f - taxRate;  // Return the value minus the taxes
+        // foreach (var taxAccount in console.Comp.TaxAccounts)
+        // {
+        //     taxRate += taxAccount.Value;
+        // }
+        // taxRate = 1.0f - taxRate;  // Return the value minus the taxes
 
         if (console.Comp.IgnoreBaseSaleRate)
             return taxRate;
@@ -1014,8 +1014,8 @@ public sealed partial class ShipyardSystem : SharedShipyardSystem
     private int CalculateTotalSalesTax(ShipyardConsoleComponent component, int sellValue)
     {
         int salesTax = 0;
-        foreach (var (account, taxCoeff) in component.TaxAccounts)
-            salesTax += CalculateSalesTax(sellValue, taxCoeff);
+        // foreach (var (account, taxCoeff) in component.TaxAccounts)
+        //     salesTax += CalculateSalesTax(sellValue, taxCoeff);
         return salesTax;
     }
 

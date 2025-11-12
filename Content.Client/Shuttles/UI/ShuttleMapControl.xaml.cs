@@ -13,7 +13,7 @@
 using System.Buffers;
 using System.Numerics;
 using Content.Client.Shuttles.Systems;
-using Content.Shared._Mono.Company;
+// using Content.Shared._Mono.Company;
 using Content.Shared._Mono.Detection;
 using Content.Shared.Shuttles.Components;
 using Content.Shared.Shuttles.UI.MapObjects;
@@ -355,13 +355,13 @@ public sealed partial class ShuttleMapControl : BaseShuttleControl
 
                 // Get company color if the beacon has it
                 var displayColor = beaconColor;
-                if (mapO is GridMapObject gridObj &&
-                    EntManager.TryGetComponent(gridObj.Entity, out Shared._Mono.Company.CompanyComponent? companyComp) &&
-                    !string.IsNullOrEmpty(companyComp.CompanyName) &&
-                    IoCManager.Resolve<IPrototypeManager>().TryIndex<CompanyPrototype>(companyComp.CompanyName, out var beaconCompanyProto))
-                {
-                    displayColor = Color.FromSrgb(beaconCompanyProto.Color);
-                }
+                // if (mapO is GridMapObject gridObj &&
+                //     EntManager.TryGetComponent(gridObj.Entity, out Shared._Mono.Company.CompanyComponent? companyComp) &&
+                //     !string.IsNullOrEmpty(companyComp.CompanyName) &&
+                //     IoCManager.Resolve<IPrototypeManager>().TryIndex<CompanyPrototype>(companyComp.CompanyName, out var beaconCompanyProto))
+                // {
+                //     displayColor = Color.FromSrgb(beaconCompanyProto.Color);
+                // }
 
                 var existingVerts = _verts.GetOrNew(displayColor);
                 var existingEdges = _edges.GetOrNew(displayColor);
@@ -462,20 +462,20 @@ public sealed partial class ShuttleMapControl : BaseShuttleControl
 
                 // Get company color if entity has CompanyComponent
                 var displayColor = adjustedColor;
-                if (hasLabel)
-                {
-                    foreach (var mapObj in viewportObjects)
-                    {
-                        if (mapObj is GridMapObject gridObj &&
-                            EntManager.TryGetComponent(gridObj.Entity, out Shared._Mono.Company.CompanyComponent? companyComp) &&
-                            !string.IsNullOrEmpty(companyComp.CompanyName) &&
-                            IoCManager.Resolve<IPrototypeManager>().TryIndex<CompanyPrototype>(companyComp.CompanyName, out var gridCompanyProto))
-                        {
-                            displayColor = Color.FromSrgb(gridCompanyProto.Color);
-                            break;
-                        }
-                    }
-                }
+                // if (hasLabel)
+                // {
+                //     foreach (var mapObj in viewportObjects)
+                //     {
+                //         if (mapObj is GridMapObject gridObj &&
+                //             EntManager.TryGetComponent(gridObj.Entity, out Shared._Mono.Company.CompanyComponent? companyComp) &&
+                //             !string.IsNullOrEmpty(companyComp.CompanyName) &&
+                //             IoCManager.Resolve<IPrototypeManager>().TryIndex<CompanyPrototype>(companyComp.CompanyName, out var gridCompanyProto))
+                //         {
+                //             displayColor = Color.FromSrgb(gridCompanyProto.Color);
+                //             break;
+                //         }
+                //     }
+                // }
 
                 // Draw main ship label with company color if available
                 handle.DrawString(_font, gridUiPos + mainTextWidth with { X = -mainTextWidth.X / 2f, Y = mainTextWidth.Y * UIScale }, mainLabel, displayColor);
@@ -574,13 +574,13 @@ public sealed partial class ShuttleMapControl : BaseShuttleControl
 
         // Get company color if available
         var coordColor = Color.White;
-        if (_shuttleEntity != null &&
-            EntManager.TryGetComponent(_shuttleEntity.Value, out Shared._Mono.Company.CompanyComponent? shipCompanyComp) &&
-            !string.IsNullOrEmpty(shipCompanyComp.CompanyName) &&
-            IoCManager.Resolve<IPrototypeManager>().TryIndex<CompanyPrototype>(shipCompanyComp.CompanyName, out var shipCompanyProto))
-        {
-            coordColor = shipCompanyProto.Color;
-        }
+        // if (_shuttleEntity != null &&
+        //     EntManager.TryGetComponent(_shuttleEntity.Value, out Shared._Mono.Company.CompanyComponent? shipCompanyComp) &&
+        //     !string.IsNullOrEmpty(shipCompanyComp.CompanyName) &&
+        //     IoCManager.Resolve<IPrototypeManager>().TryIndex<CompanyPrototype>(shipCompanyComp.CompanyName, out var shipCompanyProto))
+        // {
+        //     coordColor = shipCompanyProto.Color;
+        // }
 
         DrawData(handle, coordsText, coordColor);
     }
