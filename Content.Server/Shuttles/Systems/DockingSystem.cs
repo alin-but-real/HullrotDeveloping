@@ -1,3 +1,4 @@
+using System.Numerics;
 using Content.Server.Doors.Systems;
 using Content.Server.NPC.Pathfinding;
 using Content.Server.Shuttles.Components;
@@ -10,6 +11,8 @@ using Content.Shared.Shuttles.Events;
 using Content.Shared.Shuttles.Systems;
 using Robust.Shared.Map;
 using Robust.Shared.Map.Components;
+using Robust.Shared.Physics;
+using Robust.Shared.Physics.Collision.Shapes;
 using Robust.Shared.Physics.Components;
 using Robust.Shared.Physics.Dynamics.Joints;
 using Robust.Shared.Physics.Systems;
@@ -20,7 +23,6 @@ namespace Content.Server.Shuttles.Systems
     public sealed partial class DockingSystem : SharedDockingSystem
     {
         [Dependency] private readonly IMapManager _mapManager = default!;
-        [Dependency] private readonly SharedMapSystem _mapSystem = default!;
         [Dependency] private readonly DoorSystem _doorSystem = default!;
         [Dependency] private readonly EntityLookupSystem _lookup = default!;
         [Dependency] private readonly PathfindingSystem _pathfinding = default!;
@@ -56,7 +58,6 @@ namespace Content.Server.Shuttles.Systems
             // in which case I would also add their subs here.
             SubscribeLocalEvent<ShuttleConsoleComponent, DockRequestMessage>(OnRequestDock);
             SubscribeLocalEvent<ShuttleConsoleComponent, UndockRequestMessage>(OnRequestUndock);
-            SubscribeLocalEvent<ShuttleConsoleComponent, UndockAllRequestMessage>(OnRequestUndockAll);
         }
 
         public void UndockDocks(EntityUid gridUid)
@@ -261,7 +262,7 @@ namespace Content.Server.Shuttles.Systems
 
                 joint.LocalAnchorA = anchorA;
                 joint.LocalAnchorB = anchorB;
-                joint.ReferenceAngle = (float)(_transform.GetWorldRotation(gridBXform) - _transform.GetWorldRotation(gridAXform));
+                joint.ReferenceAngle = (float) (_transform.GetWorldRotation(gridBXform) - _transform.GetWorldRotation(gridAXform));
                 joint.CollideConnected = true;
                 joint.Stiffness = stiffness;
                 joint.Damping = damping;
@@ -280,24 +281,24 @@ namespace Content.Server.Shuttles.Systems
             {
                 if (_doorSystem.TryOpen(dockAUid, doorA))
                 {
+                    doorA.ChangeAirtight = false;
                     if (TryComp<DoorBoltComponent>(dockAUid, out var airlockA))
                     {
                         _doorSystem.SetBoltsDown((dockAUid, airlockA), true);
                     }
                 }
-                doorA.ChangeAirtight = false;
             }
 
             if (TryComp(dockBUid, out DoorComponent? doorB))
             {
                 if (_doorSystem.TryOpen(dockBUid, doorB))
                 {
+                    doorB.ChangeAirtight = false;
                     if (TryComp<DoorBoltComponent>(dockBUid, out var airlockB))
                     {
                         _doorSystem.SetBoltsDown((dockBUid, airlockB), true);
                     }
                 }
-                doorB.ChangeAirtight = false;
             }
 
             if (_pathfinding.TryCreatePortal(dockAXform.Coordinates, dockBXform.Coordinates, out var handle))
@@ -336,63 +337,10 @@ namespace Content.Server.Shuttles.Systems
             if (dock.Comp.DockedWith == null)
                 return;
 
-            // Check if either shuttle is in FTL before undocking
-            var otherDockUid = dock.Comp.DockedWith.Value;
-            var shuttleUid = Transform(dock).GridUid;
-            var otherShuttleUid = Transform(otherDockUid).GridUid;
-
-            bool dockedInFTL = false;
-            EntityUid? ftlSourceShuttle = null;
-            FTLComponent? ftlComp = null;
-
-            // Check if either shuttle is in FTL travel
-            if (shuttleUid != null && TryComp<FTLComponent>(shuttleUid, out var shuttleFTL) &&
-                shuttleFTL.State == FTLState.Travelling)
-            {
-                dockedInFTL = true;
-                ftlSourceShuttle = shuttleUid;
-                ftlComp = shuttleFTL;
-            }
-            else if (otherShuttleUid != null && TryComp<FTLComponent>(otherShuttleUid, out var otherShuttleFTL) &&
-                     otherShuttleFTL.State == FTLState.Travelling)
-            {
-                dockedInFTL = true;
-                ftlSourceShuttle = otherShuttleUid;
-                ftlComp = otherShuttleFTL;
-            }
-
             OnUndock(dock.Owner);
             OnUndock(dock.Comp.DockedWith.Value);
             Cleanup(dock.Owner, dock);
             _console.RefreshShuttleConsoles();
-
-            // If undocking occurred during FTL travel, we need to update the FTL components
-            if (dockedInFTL && ftlSourceShuttle != null && ftlComp != null)
-            {
-                // The linked shuttle should be the main shuttle controlling FTL
-                var mainFTLShuttle = ftlComp.LinkedShuttle ?? ftlSourceShuttle.Value;
-
-                // For both shuttles, make sure they can complete their FTL journey independently
-                if (shuttleUid != null && shuttleUid != mainFTLShuttle &&
-                    TryComp<FTLComponent>(shuttleUid, out var shuttleFtlComp) && shuttleFtlComp.State == FTLState.Travelling)
-                {
-                    // Make sure the undocked shuttle maintains the same FTL state
-                    // This allows the undocked shuttle to complete its FTL journey
-                    // Set no LinkedShuttle so it will be processed independently
-                    shuttleFtlComp.LinkedShuttle = null;
-                    Dirty(shuttleUid.Value, shuttleFtlComp);
-                }
-
-                if (otherShuttleUid != null && otherShuttleUid != mainFTLShuttle &&
-                    TryComp<FTLComponent>(otherShuttleUid, out var otherFtlComp) && otherFtlComp.State == FTLState.Travelling)
-                {
-                    // Make sure the undocked shuttle maintains the same FTL state
-                    // This allows the undocked shuttle to complete its FTL journey
-                    // Set no LinkedShuttle so it will be processed independently
-                    otherFtlComp.LinkedShuttle = null;
-                    Dirty(otherShuttleUid.Value, otherFtlComp);
-                }
-            }
         }
 
         private void OnUndock(EntityUid dockUid)
@@ -454,14 +402,6 @@ namespace Content.Server.Shuttles.Systems
                 return;
             }
 
-            // Frontier: ensure dock initiator isn't receive only.
-            if (ourDockComp.ReceiveOnly)
-            {
-                _popup.PopupCursor(Loc.GetString("shuttle-console-dock-fail"));
-                return;
-            }
-            // End Frontier
-
             // Cheating?
             if (!TryComp(ourDock, out TransformComponent? xformA) ||
                 xformA.GridUid != shuttleUid)
@@ -503,11 +443,6 @@ namespace Content.Server.Shuttles.Systems
                 return false;
             }
 
-            // Frontier: mask docking types
-            if ((dockA.Comp.DockType & dockB.Comp.DockType) == DockType.None)
-                return false;
-            // End Frontier
-
             var xformA = Transform(dockA);
             var xformB = Transform(dockB);
 
@@ -519,38 +454,6 @@ namespace Content.Server.Shuttles.Systems
 
             return CanDock(new MapCoordinates(worldPosA, xformA.MapID), worldRotA,
                 new MapCoordinates(worldPosB, xformB.MapID), worldRotB);
-        }
-
-        private void OnRequestUndockAll(EntityUid uid, ShuttleConsoleComponent component, UndockAllRequestMessage args)
-        {
-            if (args.DockEntities.Count == 0)
-                return;
-
-            var undockedAny = false;
-
-            foreach (var dockEntity in args.DockEntities)
-            {
-                if (!TryGetEntity(dockEntity, out var dockEnt) ||
-                    !TryComp(dockEnt, out DockingComponent? dockComp))
-                {
-                    continue;
-                }
-
-                var dock = (dockEnt.Value, dockComp);
-
-                if (!CanUndock(dock))
-                {
-                    continue;
-                }
-
-                Undock(dock);
-                undockedAny = true;
-            }
-
-            if (!undockedAny)
-            {
-                _popup.PopupCursor(Loc.GetString("shuttle-console-undock-fail"));
-            }
         }
     }
 }
