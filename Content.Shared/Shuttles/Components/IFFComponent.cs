@@ -1,4 +1,13 @@
-using Content.Shared._Crescent.Diplomacy;
+// SPDX-FileCopyrightText: 2023 DrSmugleaf
+// SPDX-FileCopyrightText: 2023 InsanityMoose
+// SPDX-FileCopyrightText: 2024 Dvir
+// SPDX-FileCopyrightText: 2024 Jake Huxell
+// SPDX-FileCopyrightText: 2024 Whatstone
+// SPDX-FileCopyrightText: 2024 metalgearsloth
+// SPDX-FileCopyrightText: 2025 Ilya246
+//
+// SPDX-License-Identifier: MPL-2.0
+
 using Content.Shared.Shuttles.Systems;
 using Robust.Shared.GameStates;
 
@@ -27,19 +36,13 @@ public sealed partial class IFFComponent : Component
     [ViewVariables(VVAccess.ReadWrite), DataField, AutoNetworkedField]
     public Color Color = IFFColor;
 
-     // hullrot variables - SPCR
-    // <summary>
-    /// Which faction this ship is advertising as.
-    /// Use the IDs of Diplomacy prototypes to have it work properly, otherwise it'll show up as neutral.
-    /// </summary>
-    [ViewVariables(VVAccess.ReadOnly), DataField, AutoNetworkedField]
-    public string Faction = "Neutral";
-
+    // Frontier: POI IFF protection
     /// <summary>
-    /// Cache faction relations.
+    /// Whether or not this entity's IFF can be changed.
     /// </summary>
-    [ViewVariables(VVAccess.ReadOnly), DataField, AutoNetworkedField]
-    public Dictionary<string, Relations> Relations = new();
+    [ViewVariables(VVAccess.ReadWrite), DataField(serverOnly: true)]
+    public bool ReadOnly;
+    // End Frontier
 }
 
 [Flags]
@@ -49,6 +52,7 @@ public enum IFFFlags : byte
 
     /// <summary>
     /// Should the label for this grid be hidden at all ranges.
+    /// Mono - only hides true IFF instead.
     /// </summary>
     HideLabel = 1,
 
@@ -58,11 +62,22 @@ public enum IFFFlags : byte
     /// </summary>
     Hide = 2,
 
-    // Hullrot additions
     /// <summary>
-    /// Is this a player shuttle
+    /// Frontier - Is this a player shuttle
     /// </summary>
     IsPlayerShuttle = 4,
-    // hullrot additions end
+
+    // Mono
+    /// <summary>
+    /// If HideLabel is true, whether even detection labels should not be shown.
+    /// </summary>
+    HideLabelAlways = 8,
+
+    // Mono
+    /// <summary>
+    /// If HideLabel is true, whether to show true grid IFF color anyway.
+    /// </summary>
+    AlwaysShowColor = 16,
+
     // TODO: Need one that hides its outline, just replace it with a bunch of triangles or lines or something.
 }

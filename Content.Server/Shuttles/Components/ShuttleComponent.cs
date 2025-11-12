@@ -1,3 +1,18 @@
+// SPDX-FileCopyrightText: 2022 Radrark
+// SPDX-FileCopyrightText: 2022 metalgearsloth
+// SPDX-FileCopyrightText: 2022 wrexbe
+// SPDX-FileCopyrightText: 2023 DrSmugleaf
+// SPDX-FileCopyrightText: 2023 Kevin Zheng
+// SPDX-FileCopyrightText: 2023 router
+// SPDX-FileCopyrightText: 2024 Kesiath
+// SPDX-FileCopyrightText: 2024 checkraze
+// SPDX-FileCopyrightText: 2025 Ark
+// SPDX-FileCopyrightText: 2025 Ilya246
+// SPDX-FileCopyrightText: 2025 Princess Cheeseballs
+// SPDX-FileCopyrightText: 2025 Redrover1760
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 using System.Numerics;
 
 namespace Content.Server.Shuttles.Components
@@ -13,15 +28,14 @@ namespace Content.Server.Shuttles.Components
 
         /// <summary>
         /// Thrust gets multiplied by this value if it's for braking.
-        /// Hullrot edit: buffed to 3f from 1.5f. .2 | 2025
         /// </summary>
-        public const float BrakeCoefficient = 3f;
+        public const float BrakeCoefficient = 1.5f;
 
         /// <summary>
         /// Maximum velocity assuming unupgraded, tier 1 thrusters
         /// </summary>
-        [ViewVariables(VVAccess.ReadWrite), DataField]
-        public float BaseMaxLinearVelocity = 20f;
+        [ViewVariables(VVAccess.ReadWrite)]
+        public float BaseMaxLinearVelocity = 60f; // Mono
 
         public const float MaxAngularVelocity = 4f;
 
@@ -30,6 +44,12 @@ namespace Content.Server.Shuttles.Components
         /// </summary>
         [ViewVariables]
         public readonly float[] LinearThrust = new float[4];
+
+        /// <summary>
+        /// The cached thrust available for each cardinal direction, if all thrusters are T1
+        /// </summary>
+        [ViewVariables]
+        public readonly float[] BaseLinearThrust = new float[4];
 
         /// <summary>
         /// The thrusters contributing to each direction for impulse.
@@ -58,24 +78,42 @@ namespace Content.Server.Shuttles.Components
         public DirectionFlag ThrustDirections = DirectionFlag.None;
 
         /// <summary>
-        /// Damping applied to the shuttle's physics component when not in FTL.
-        /// </summary>
-        [DataField("linearDamping"), ViewVariables(VVAccess.ReadWrite)]
-        public float LinearDamping = 0.05f;
-
-        [DataField("angularDamping"), ViewVariables(VVAccess.ReadWrite)]
-        public float AngularDamping = 0.05f;
-
-        /// <summary>
-        ///     How far from the shuttle's bounding box will it crush and destroy things?
+        /// Base damping modifier applied to the shuttle's physics component when not in FTL.
         /// </summary>
         [DataField]
-        public float SmimshDistance = 0.2f;
+        public float BodyModifier = 0.25f;
 
         /// <summary>
-        ///     Whether or not the shuttle calls the DoTheDinosaur function upon FTL'ing. I'm not explaining this, you owe it to yourself to do a code search for it.
+        /// Final Damping Modifier for a shuttle.
+        /// This value is set to 0 during FTL. And to BodyModifier when not in FTL.
         /// </summary>
         [DataField]
-        public bool DoTheDinosaur = true;
+        public float DampingModifier;
+
+        // <Mono>
+        /// <summary>
+        /// Limit to max velocity set by a shuttle console.
+        /// </summary>
+        [DataField]
+        public float SetMaxVelocity = 100f;
+
+        /// <summary>
+        /// At what Thrust-Weight-Ratio should this ship have the base max velocity as its maximum velocity.
+        /// </summary>
+        [DataField]
+        public float BaseMaxVelocityTWR = 2f;
+
+        /// <summary>
+        /// How much should TWR affect max velocity.
+        /// </summary>
+        [DataField]
+        public float MaxVelocityScalingExponent = 0.25f; // 16x thrust = 2x max speed
+
+        /// <summary>
+        /// Don't allow max velocity to go beyond this value.
+        /// </summary>
+        [DataField]
+        public float UpperMaxVelocity = 100f;
+        // </Mono>
     }
 }

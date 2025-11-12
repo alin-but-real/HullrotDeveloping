@@ -1,7 +1,7 @@
-using Content.Shared.Shipyard.Prototypes;
+using Content.Shared._NF.Shipyard.Prototypes;
 using Robust.Shared.Serialization.TypeSerializers.Implementations.Custom.Prototype.List;
 
-namespace Content.Shared.Shipyard.Components;
+namespace Content.Shared._NF.Shipyard.Components;
 
 /// <summary>
 ///   When applied to a shipyard console, adds all specified shuttles to the list of sold shuttles.

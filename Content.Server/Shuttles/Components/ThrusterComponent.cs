@@ -1,21 +1,43 @@
+// SPDX-FileCopyrightText: 2021 JustinTime
+// SPDX-FileCopyrightText: 2021 Vera Aguilera Puerto
+// SPDX-FileCopyrightText: 2021 metalgearsloth
+// SPDX-FileCopyrightText: 2022 Pieter-Jan Briers
+// SPDX-FileCopyrightText: 2022 Radrark
+// SPDX-FileCopyrightText: 2022 wrexbe
+// SPDX-FileCopyrightText: 2023 DrSmugleaf
+// SPDX-FileCopyrightText: 2023 Leon Friedrich
+// SPDX-FileCopyrightText: 2023 TemporalOroboros
+// SPDX-FileCopyrightText: 2024 Dvir
+// SPDX-FileCopyrightText: 2024 Kesiath
+// SPDX-FileCopyrightText: 2024 Nemanja
+// SPDX-FileCopyrightText: 2024 checkraze
+// SPDX-FileCopyrightText: 2024 spacedwarf14
+// SPDX-FileCopyrightText: 2025 Ilya246
+// SPDX-FileCopyrightText: 2025 Redrover1760
+// SPDX-FileCopyrightText: 2025 Winkarst
+//
+// SPDX-License-Identifier: MPL-2.0
+
 using System.Numerics;
+using Content.Server._NF.M_Emp;
 using Content.Server.Shuttles.Systems;
 using Content.Shared.Construction.Prototypes;
 using Content.Shared.Damage;
+using Content.Shared.DeviceLinking; // Frontier
 using Robust.Shared.GameStates;
 using Robust.Shared.Serialization.TypeSerializers.Implementations.Custom;
 using Robust.Shared.Serialization.TypeSerializers.Implementations.Custom.Prototype;
 
 namespace Content.Server.Shuttles.Components
 {
-    [RegisterComponent, NetworkedComponent]
+    [RegisterComponent, NetworkedComponent, AutoGenerateComponentPause]
     [Access(typeof(ThrusterSystem))]
     public sealed partial class ThrusterComponent : Component
     {
         /// <summary>
         /// Whether the thruster has been force to be enabled / disabled (e.g. VV, interaction, etc.)
         /// </summary>
-        [DataField]
+        [DataField, ViewVariables(VVAccess.ReadWrite)]
         public bool Enabled { get; set; } = true;
 
         /// <summary>
@@ -24,11 +46,11 @@ namespace Content.Server.Shuttles.Components
         public bool IsOn;
 
         // Need to serialize this because RefreshParts isn't called on Init and this will break post-mapinit maps!
-        [DataField]
-        public float Thrust = 100f;
+        [ViewVariables(VVAccess.ReadWrite), DataField("thrust")]
+        public float Thrust = 150f; // 100f->150f Mono
 
-        [DataField]
-        public float BaseThrust = 100f;
+        [DataField("baseThrust"), ViewVariables(VVAccess.ReadWrite)]
+        public float BaseThrust = 150f; // 100f->150f Mono
 
         [DataField("thrusterType")]
         public ThrusterType Type = ThrusterType.Linear;
@@ -42,31 +64,52 @@ namespace Content.Server.Shuttles.Components
         };
 
         /// <summary>
-        ///     How much damage is done per second to anything colliding with our thrust.
+        /// How much damage is done per second to anything colliding with our thrust.
         /// </summary>
-        [DataField]
-        public DamageSpecifier? Damage = new();
+        [DataField("damage")] public DamageSpecifier? Damage = new();
 
-        [DataField]
+        [DataField("requireSpace")]
         public bool RequireSpace = true;
 
         // Used for burns
 
         public List<EntityUid> Colliding = new();
 
-        public bool Firing;
+        public bool Firing = false;
 
         /// <summary>
-        ///     Next time we tick damage for anyone colliding.
+        /// How often thruster deals damage.
         /// </summary>
-        [DataField(customTypeSerializer: typeof(TimeOffsetSerializer))]
-        public TimeSpan NextFire;
+        [DataField]
+        public TimeSpan FireCooldown = TimeSpan.FromSeconds(2);
 
-        [DataField(customTypeSerializer: typeof(PrototypeIdSerializer<MachinePartPrototype>))]
+        [DataField(customTypeSerializer: typeof(TimeOffsetSerializer)), AutoPausedField]
+        public TimeSpan NextFire = TimeSpan.Zero;
+
+        // Frontier: upgradeable parts, togglable thrust
+        [DataField("machinePartThrust", customTypeSerializer: typeof(PrototypeIdSerializer<MachinePartPrototype>))]
         public string MachinePartThrust = "Capacitor";
 
-        [DataField]
-        public float PartRatingThrustMultiplier = 1.5f;
+        [DataField("partRatingThrustMultiplier")]
+        public float PartRatingThrustMultiplier = 1.15f; // Frontier - PR #1292 1.5f<1.15f
+
+        /// <summary>
+        ///     Frontier - Amount of charge this needs from an APC per second to function.
+        /// </summary>
+        public float OriginalLoad { get; set; } = 0;
+
+        /// <summary>
+        ///     Frontier - Make linkable to buttons
+        /// </summary>
+        [DataField("onPort", customTypeSerializer: typeof(PrototypeIdSerializer<SinkPortPrototype>))] // Frontier
+        public string OnPort = "On"; // Frontier
+
+        [DataField("offPort", customTypeSerializer: typeof(PrototypeIdSerializer<SinkPortPrototype>))] // Frontier
+        public string OffPort = "Off"; // Frontier
+
+        [DataField("togglePort", customTypeSerializer: typeof(PrototypeIdSerializer<SinkPortPrototype>))] // Frontier
+        public string TogglePort = "Toggle"; // Frontier
+        // End Frontier: upgradeable parts, togglable thrust
 
         // Mono
         /// <summary>
