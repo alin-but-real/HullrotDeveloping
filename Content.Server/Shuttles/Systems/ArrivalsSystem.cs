@@ -2,6 +2,7 @@ using System.Linq;
 using System.Numerics;
 using Content.Server.Administration;
 using Content.Server.Chat.Managers;
+using Content.Server.DeviceNetwork.Components;
 using Content.Server.DeviceNetwork.Systems;
 using Content.Server.GameTicking;
 using Content.Server.GameTicking.Events;

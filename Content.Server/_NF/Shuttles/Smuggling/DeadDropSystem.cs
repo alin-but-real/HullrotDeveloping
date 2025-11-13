@@ -3,7 +3,7 @@ using Content.Server._NF.Smuggling.Components;
 using Content.Server.Administration.Logs;
 using Content.Server.Paper;
 using Content.Server.Radio.EntitySystems;
-using Content.Server.Shipyard;
+// using Content.Server.Shipyard;
 using Content.Server.Shuttles.Components;
 using Content.Server.Shuttles.Systems;
 using Content.Shared.Coordinates;
@@ -21,6 +21,7 @@ using Robust.Shared.Prototypes;
 using Robust.Shared.Random;
 using Robust.Shared.Timing;
 using Robust.Shared.Utility;
+using Content.Server._NF.Shipyard.Systems;
 
 namespace Content.Server._NF.Smuggling;
 

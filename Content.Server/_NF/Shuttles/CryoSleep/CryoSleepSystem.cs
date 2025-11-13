@@ -5,7 +5,7 @@ using Content.Server.GameTicking;
 using Content.Server.Interaction;
 using Content.Server.Mind;
 using Content.Server.Popups;
-using Content.Server.Shipyard;
+// using Content.Server.Shipyard;
 using Content.Server.Traits.Assorted;
 using Content.Shared.ActionBlocker;
 using Content.Shared.Climbing.Systems;
@@ -48,7 +48,7 @@ public sealed partial class CryoSleepSystem : SharedCryoSleepSystem
     [Dependency] private readonly DoAfterSystem _doAfter = default!;
     [Dependency] private readonly MobStateSystem _mobSystem = default!;
     [Dependency] private readonly PopupSystem _popup = default!;
-    [Dependency] private readonly ShipyardSystem _shipyard = default!; // For the FoundOrganics method
+    // [Dependency] private readonly ShipyardSystem _shipyard = default!; // For the FoundOrganics method
 
     private readonly Dictionary<NetUserId, StoredBody?> _storedBodies = new();
     private EntityUid? _storageMap;
@@ -199,11 +199,12 @@ public sealed partial class CryoSleepSystem : SharedCryoSleepSystem
         var mobQuery = GetEntityQuery<MobStateComponent>();
         var xformQuery = GetEntityQuery<TransformComponent>();
         // Refuse to accept "passengers" (e.g. pet felinids in bags)
-        if (_shipyard.FoundOrganics(toInsert.Value, mobQuery, xformQuery))
-        {
-            _popup.PopupEntity(Loc.GetString("cryopod-refuse-organic", ("cryopod", cryopod)), cryopod, PopupType.SmallCaution);
-            return false;
-        }
+        //broke cuz mono radar port
+        // if (_shipyard.FoundOrganics(toInsert.Value, mobQuery, xformQuery))
+        // {
+        //     _popup.PopupEntity(Loc.GetString("cryopod-refuse-organic", ("cryopod", cryopod)), cryopod, PopupType.SmallCaution);
+        //     return false;
+        // }
 
         // Refuse to accept dead or crit bodies, as well as non-mobs
         if (!TryComp<MobStateComponent>(toInsert, out var mob) || !_mobSystem.IsAlive(toInsert.Value, mob))
