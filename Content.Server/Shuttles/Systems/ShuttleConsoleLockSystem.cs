@@ -17,7 +17,7 @@ using Robust.Shared.Audio.Systems;
 using Content.Shared.Verbs;
 using Robust.Shared.Utility;
 using Content.Server._NF.Shipyard.Components;
-using Content.Shared._Mono.Company;
+// using Content.Shared._Mono.Company;
 using Content.Shared._Mono.Shipyard;
 using Content.Shared.Silicons.Borgs.Components;
 using Content.Shared.Interaction;
@@ -357,7 +357,7 @@ public sealed class ShuttleConsoleLockSystem : SharedShuttleConsoleLockSystem
             lockComp.Locked = true;
         }
 
-        _audio.PlayPvs(idComp.SwipeSound, console);
+        // _audio.PlayPvs(idComp.SwipeSound, console);
         Popup.PopupEntity(Loc.GetString("shuttle-console-locked-success"), console);
 
         // Remove any pilots
@@ -676,7 +676,7 @@ public sealed class ShuttleConsoleLockSystem : SharedShuttleConsoleLockSystem
         if (deeds.Count == 0)
         {
             Log.Debug("No deeds found for ID card {0}", idCard);
-            _audio.PlayPvs(idComp.ErrorSound, idCard);
+            // _audio.PlayPvs(idComp.ErrorSound, idCard);
             return false;
         }
 
@@ -700,7 +700,7 @@ public sealed class ShuttleConsoleLockSystem : SharedShuttleConsoleLockSystem
         if (!deedFound)
         {
             Log.Debug("No matching deed found for shuttle console {0}", console);
-            _audio.PlayPvs(idComp.ErrorSound, idCard);
+            // _audio.PlayPvs(idComp.ErrorSound, idCard);
             return false;
         }
 
@@ -718,7 +718,7 @@ public sealed class ShuttleConsoleLockSystem : SharedShuttleConsoleLockSystem
             lockComp.Locked = false;
         }
 
-        _audio.PlayPvs(idComp.SwipeSound, console);
+        // _audio.PlayPvs(idComp.SwipeSound, console);
         Popup.PopupEntity(Loc.GetString("shuttle-console-unlocked"), console);
         return true;
     }
