@@ -1,7 +1,7 @@
 using System.Linq;
-using Content.Server._NF.Bank;
+// using Content.Server._NF.Bank;
 using Content.Server.Cargo.Components;
-using Content.Shared._NF.Bank.BUI;
+// using Content.Shared._NF.Bank.BUI;
 using Content.Shared._NF.ShuttleRecords;
 using Content.Shared._NF.ShuttleRecords.Components;
 using Content.Shared._NF.ShuttleRecords.Events;
@@ -10,6 +10,7 @@ using Content.Shared.Database;
 using Content.Shared._NF.Shipyard.Components;
 using Robust.Shared.Audio;
 using Robust.Shared.Containers;
+using Content.Server.Bank;
 
 namespace Content.Server._NF.ShuttleRecords;
 
@@ -158,13 +159,15 @@ public sealed partial class ShuttleRecordsSystem
         }
 
         // Ensure that after the deduction math there is more than 0 left in the account.
-        var transactionPrice = GetTransactionCost(component, record.PurchasePrice);
-        if (!_bank.TrySectorWithdraw(component.Account, (int)transactionPrice, LedgerEntryType.ShuttleRecordFees))
-        {
-            _popup.PopupEntity(Loc.GetString("shuttle-records-insufficient-funds"), args.Actor);
-            _audioSystem.PlayPredicted(component.ErrorSound, uid, null, AudioParams.Default.WithMaxDistance(5f));
-            return;
-        }
+        //.2 edit: broke post mono radar port
+        // no way this'll cause problems, right?
+        // var transactionPrice = GetTransactionCost(component, record.PurchasePrice);
+        // if (!_bank.TrySectorWithdraw(component.Account, (int)transactionPrice, LedgerEntryType.ShuttleRecordFees))
+        // {
+        //     _popup.PopupEntity(Loc.GetString("shuttle-records-insufficient-funds"), args.Actor);
+        //     _audioSystem.PlayPredicted(component.ErrorSound, uid, null, AudioParams.Default.WithMaxDistance(5f));
+        //     return;
+        // }
 
         AssignShuttleDeedProperties(record, targetId);
 
@@ -173,11 +176,11 @@ public sealed partial class ShuttleRecordsSystem
         RefreshState(uid, component);
 
         // Add to admin logs.
-        var shuttleName = record.Name + " " + record.Suffix;
-        _adminLogger.Add(
-            LogType.ShuttleRecordsUsage,
-            LogImpact.Low,
-            $"{ToPrettyString(args.Actor):actor} used {transactionPrice} from station bank account to copy shuttle deed {shuttleName}.");
+        // var shuttleName = record.Name + " " + record.Suffix;
+        // _adminLogger.Add(
+        //     LogType.ShuttleRecordsUsage,
+        //     LogImpact.Low,
+        //     $"{ToPrettyString(args.Actor):actor} used {transactionPrice} from station bank account to copy shuttle deed {shuttleName}.");
         _audioSystem.PlayPredicted(component.ConfirmSound, uid, null, AudioParams.Default.WithMaxDistance(5f));
     }
 
