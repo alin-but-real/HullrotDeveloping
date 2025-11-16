@@ -381,7 +381,6 @@ public sealed partial class EmergencyShuttleSystem
 
         var time = TimeSpan.FromSeconds(_authorizeTime);
         var shuttle = GetShuttle();
-        if (shuttle != null && TryComp<DeviceNetworkComponent>(shuttle, out var net))
         {
             var payload = new NetworkPayload
             {
@@ -393,7 +392,6 @@ public sealed partial class EmergencyShuttleSystem
                 [ShuttleTimerMasks.DestTime] = time + TimeSpan.FromSeconds(TransitTime),
                 [ShuttleTimerMasks.Docked] = true
             };
-            _deviceNetworkSystem.QueuePacket(shuttle.Value, null, payload, net.TransmitFrequency);
         }
 
         return true;

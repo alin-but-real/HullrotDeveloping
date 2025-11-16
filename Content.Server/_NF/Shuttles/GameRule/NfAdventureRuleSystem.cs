@@ -128,10 +128,6 @@ public sealed class NfAdventureRuleSystem : GameRuleSystem<AdventureRuleComponen
                 // setting color if applicable. if not, White is default
                 _shuttle.SetIFFColor(stationGridUid.Value.Owner, color);
 
-                // set IFFFaction if applicable. dont know if this does anything
-                if (iffFaction != null)
-                    _shuttle.SetIFFFaction(stationGridUid.Value.Owner, iffFaction);
-
                 // hide IFF if needed, like for derelicts or secrets
                 if (hideIFF)
                     _shuttle.AddIFFFlag(stationGridUid.Value.Owner, IFFFlags.HideLabel);

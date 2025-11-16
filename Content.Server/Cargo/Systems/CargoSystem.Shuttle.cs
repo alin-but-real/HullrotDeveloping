@@ -389,8 +389,6 @@ public sealed partial class CargoSystem
         EnsureComp<TradeStationComponent>(grid.Value);
 
         var shuttleComponent = EnsureComp<ShuttleComponent>(grid.Value);
-        shuttleComponent.AngularDamping = 10000;
-        shuttleComponent.LinearDamping = 10000;
         Dirty(grid.Value, shuttleComponent);
 
         var mapUid = _sharedMapSystem.GetMap(CargoMap.Value);
