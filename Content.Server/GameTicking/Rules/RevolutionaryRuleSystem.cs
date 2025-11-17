@@ -40,7 +40,6 @@ public sealed class RevolutionaryRuleSystem : GameRuleSystem<RevolutionaryRuleCo
 {
     [Dependency] private readonly IAdminLogManager _adminLogManager = default!;
     [Dependency] private readonly AntagSelectionSystem _antag = default!;
-    [Dependency] private readonly EmergencyShuttleSystem _emergencyShuttle = default!;
     [Dependency] private readonly EuiManager _euiMan = default!;
     [Dependency] private readonly MindSystem _mind = default!;
     [Dependency] private readonly MobStateSystem _mobState = default!;

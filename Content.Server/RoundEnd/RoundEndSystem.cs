@@ -40,7 +40,6 @@ namespace Content.Server.RoundEnd
         [Dependency] private readonly ChatSystem _chatSystem = default!;
         [Dependency] private readonly GameTicker _gameTicker = default!;
         [Dependency] private readonly DeviceNetworkSystem _deviceNetworkSystem = default!;
-        [Dependency] private readonly EmergencyShuttleSystem _shuttle = default!;
         [Dependency] private readonly SharedAudioSystem _audio = default!;
         [Dependency] private readonly StationSystem _stationSystem = default!;
         [Dependency] private readonly AnnouncerSystem _announcer = default!;
@@ -196,9 +195,6 @@ namespace Content.Server.RoundEnd
             LastCountdownStart = _gameTiming.CurTime;
             ExpectedCountdownEnd = _gameTiming.CurTime + countdownTime;
 
-            // TODO full game saves
-            Timer.Spawn(countdownTime, _shuttle.CallEmergencyShuttle, _countdownTokenSource.Token);
-
             ActivateCooldown();
             RaiseLocalEvent(RoundEndSystemChangedEvent.Default);
 
@@ -211,10 +207,8 @@ namespace Content.Server.RoundEnd
                     [ShuttleTimerMasks.SourceMap] = GetCentcomm(),
                     [ShuttleTimerMasks.DestMap] = GetStation(),
                     [ShuttleTimerMasks.ShuttleTime] = countdownTime,
-                    [ShuttleTimerMasks.SourceTime] = countdownTime + TimeSpan.FromSeconds(_shuttle.TransitTime + _cfg.GetCVar(CCVars.EmergencyShuttleDockTime)),
-                    [ShuttleTimerMasks.DestTime] = countdownTime,
+                    [ShuttleTimerMasks.SourceTime] = countdownTime
                 };
-                _deviceNetworkSystem.QueuePacket(shuttle.Value, null, payload, net.TransmitFrequency);
             }
         }
 
@@ -249,22 +243,7 @@ namespace Content.Server.RoundEnd
             ActivateCooldown();
             RaiseLocalEvent(RoundEndSystemChangedEvent.Default);
 
-            // remove active clientside evac shuttle timers by zeroing the target time
-            var zero = TimeSpan.Zero;
-            var shuttle = _shuttle.GetShuttle();
-            if (shuttle != null && TryComp<DeviceNetworkComponent>(shuttle, out var net))
-            {
-                var payload = new NetworkPayload
-                {
-                    [ShuttleTimerMasks.ShuttleMap] = shuttle,
-                    [ShuttleTimerMasks.SourceMap] = GetCentcomm(),
-                    [ShuttleTimerMasks.DestMap] = GetStation(),
-                    [ShuttleTimerMasks.ShuttleTime] = zero,
-                    [ShuttleTimerMasks.SourceTime] = zero,
-                    [ShuttleTimerMasks.DestTime] = zero,
-                };
-                _deviceNetworkSystem.QueuePacket(shuttle.Value, null, payload, net.TransmitFrequency);
-            }
+
         }
 
         public void EndRound(TimeSpan? countdownTime = null)
@@ -372,7 +351,6 @@ namespace Content.Server.RoundEnd
             _countdownTokenSource.Cancel();
             _countdownTokenSource = new CancellationTokenSource();
 
-            Timer.Spawn(countdown, _shuttle.CallEmergencyShuttle, _countdownTokenSource.Token);
         }
 
         public override void Update(float frameTime)
@@ -382,11 +360,7 @@ namespace Content.Server.RoundEnd
                                         : _cfg.GetCVar(CCVars.EmergencyShuttleAutoCallTime);
             if (mins != 0 && _gameTiming.CurTime - AutoCallStartTime > TimeSpan.FromMinutes(mins))
             {
-                if (!_shuttle.EmergencyShuttleArrived && ExpectedCountdownEnd is null)
-                {
-                    RequestRoundEnd(null, false, "round-end-system-shuttle-auto-called-announcement");
-                    _autoCalledBefore = true;
-                }
+
 
                 // Always reset auto-call in case of a recall.
                 SetAutoCallTime();

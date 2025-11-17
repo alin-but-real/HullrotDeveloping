@@ -15,7 +15,6 @@ namespace Content.Server.Objectives.Systems;
 /// </summary>
 public sealed class KillPersonConditionSystem : EntitySystem
 {
-    [Dependency] private readonly EmergencyShuttleSystem _emergencyShuttle = default!;
     [Dependency] private readonly IConfigurationManager _config = default!;
     [Dependency] private readonly IRobustRandom _random = default!;
     [Dependency] private readonly SharedJobSystem _job = default!;
@@ -117,16 +116,5 @@ public sealed class KillPersonConditionSystem : EntitySystem
         // if evac is disabled then they really do have to be dead
         if (!_config.GetCVar(CCVars.EmergencyShuttleEnabled))
             return 0f;
-
-        // target is escaping so you fail
-        if (_emergencyShuttle.IsTargetEscaping(mind.OwnedEntity.Value))
-            return 0f;
-
-        // evac has left without the target, greentext since the target is afk in space with a full oxygen tank and coordinates off.
-        if (_emergencyShuttle.ShuttlesLeft)
-            return 1f;
-
-        // if evac is still here and target hasn't boarded, show 50% to give you an indicator that you are doing good
-        return _emergencyShuttle.EmergencyShuttleArrived ? 0.5f : 0f;
     }
 }

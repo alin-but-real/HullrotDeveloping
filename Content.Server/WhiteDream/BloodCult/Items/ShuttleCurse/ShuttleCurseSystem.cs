@@ -15,7 +15,6 @@ public sealed class ShuttleCurseSystem : EntitySystem
 
     [Dependency] private readonly AudioSystem _audio = default!;
     [Dependency] private readonly ChatSystem _chat = default!;
-    [Dependency] private readonly EmergencyShuttleSystem _emergencyShuttle = default!;
     [Dependency] private readonly RoundEndSystem _roundEnd = default!;
     [Dependency] private readonly PopupSystem _popup = default!;
 
@@ -41,12 +40,6 @@ public sealed class ShuttleCurseSystem : EntitySystem
         if (curseProvider.CurrentUses >= curseProvider.MaxUses)
         {
             _popup.PopupEntity(Loc.GetString("shuttle-curse-max-charges"), orb, args.User);
-            return;
-        }
-
-        if (_emergencyShuttle.EmergencyShuttleArrived)
-        {
-            _popup.PopupEntity(Loc.GetString("shuttle-curse-shuttle-arrived"), orb, args.User);
             return;
         }
 
