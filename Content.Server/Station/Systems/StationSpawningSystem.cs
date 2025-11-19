@@ -160,7 +160,7 @@ public sealed class StationSpawningSystem : SharedStationSpawningSystem
             if (profile.FlavorText != "" && _configurationManager.GetCVar(CCVars.FlavorText))
                 EnsureComp<DetailExaminableComponent>(entity.Value).Content = profile.FlavorText;
             var bank = EnsureComp<BankAccountComponent>(entity.Value);
-            bank.Balance = (int)profile.BankBalance;
+            bank.Balance = profile.BankBalance;
         }
 
         DoJobSpecials(job, entity.Value);

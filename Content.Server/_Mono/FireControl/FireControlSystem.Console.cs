@@ -161,7 +161,10 @@ public sealed partial class FireControlSystem : EntitySystem
                 if (closest == null || (newPos - firePos).LengthSquared() < (_transform.GetWorldPosition(closest.Value) - firePos).LengthSquared())
                     closest = gridUid;
             }
-            
+
+            _adminLogger.Add(LogType.ShipgunFired, LogImpact.High,
+                    $"{ToPrettyString(args.Actor):user} fired weaponry of ship {ToPrettyString(grid):entity} from ({ourPos}) to ({firePos}), closest grid: {ToPrettyString(closest)}");
+
             component.NextLog = _timing.CurTime + component.LogSpacing;
         }
 
@@ -301,11 +304,23 @@ public sealed partial class FireControlSystem : EntitySystem
             return (basicAmmo.Count, !hasRecharge);
         }
 
+        if (TryComp<BallisticAmmoProviderComponent>(weaponEntity, out var ballisticAmmo))
+        {
+            // if we're InfiniteUnspawned consider us to be non-reloading when at 0 ammo
+            return (ballisticAmmo.Count, ballisticAmmo.Cycleable && (ballisticAmmo.Count != 0 || !ballisticAmmo.InfiniteUnspawned));
+        }
+
         if (TryComp<MagazineAmmoProviderComponent>(weaponEntity, out var magazineAmmo))
         {
             var magazineEntity = GetMagazineEntity(weaponEntity);
             if (magazineEntity != null)
             {
+                if (TryComp<BallisticAmmoProviderComponent>(magazineEntity, out var magazineBallisticAmmo))
+                {
+                    var hasAmmo = magazineBallisticAmmo.Cycleable
+                             && (magazineBallisticAmmo.Count != 0 || !magazineBallisticAmmo.InfiniteUnspawned);
+                    return (magazineBallisticAmmo.Count, hasAmmo);
+                }
 
                 if (TryComp<BasicEntityAmmoProviderComponent>(magazineEntity, out var magazineBasicAmmo))
                 {
