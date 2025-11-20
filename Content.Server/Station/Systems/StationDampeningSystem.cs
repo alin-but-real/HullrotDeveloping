@@ -27,7 +27,6 @@ public sealed class StationDampeningSystem : EntitySystem
             dampening.Enabled = true;
             dampening.LinearDampening = shuttleComponent?.LinearDamping ?? 0.01f;
             dampening.AngularDampening = shuttleComponent?.AngularDamping ?? 0.01f;
-
         }
     }
 }

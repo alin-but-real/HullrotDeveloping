@@ -1,5 +1,6 @@
+using Content.Server._NF.Shipyard.Systems;
 using Content.Server.Cargo.Systems;
-using Content.Server.Shipyard;
+using Content.Server._NF.Shipyard.Systems;
 using Content.Server.Shuttles.Components;
 using Content.Shared.Shipyard.Prototypes;
 using Robust.Shared.GameObjects;
@@ -28,7 +29,7 @@ public sealed class ShipyardTest
             {
                 foreach (var vessel in proto.EnumeratePrototypes<VesselPrototype>())
                 {
-                    var shuttle = shipyard.TryCreateShuttle(vessel.Path.ToString());
+                    var shuttle = shipyard.TryShuttle(vessel.Path.ToString());
                     Assert.That(shuttle, Is.Not.Null, $"Failed to spawn shuttle {vessel.ID}!");
 
                     var value = pricing.AppraiseGrid(shuttle.Value);
